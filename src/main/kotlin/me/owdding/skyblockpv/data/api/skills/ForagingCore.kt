@@ -2,6 +2,8 @@ package me.owdding.skyblockpv.data.api.skills
 
 import com.google.gson.JsonObject
 import me.owdding.skyblockpv.utils.ParseHelper
+import tech.thatgravyboat.skyblockapi.utils.extentions.asInt
+import tech.thatgravyboat.skyblockapi.utils.json.getPath
 
 data class ForagingCore(override val json: JsonObject) : ParseHelper {
     val dailyTreesCut by int("daily_trees_cut")
@@ -33,8 +35,9 @@ data class TreeGifts(override val json: JsonObject) : ParseHelper {
     val helixTierClaimed by int("milestone_tier_claimed.HELIX")
 }
 
-data class ForagingData(override val json: JsonObject) : ParseHelper {
+data class ForagingData(val member: JsonObject, override val json: JsonObject) : ParseHelper {
     val personalBests by obj("starlyn.personal_bests", ::PersonalBests)
     val fishFamily: Set<String> by stringSet("fish_family")
     val treeGifts by obj("tree_gifts", transform = ::TreeGifts)
+    val foragingLevelCap: Int = member.getPath("player_data.experience.SKILL_FORAGING_extra_level_cap").asInt(0)
 }

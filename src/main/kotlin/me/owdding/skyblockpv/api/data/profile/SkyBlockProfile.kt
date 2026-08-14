@@ -13,27 +13,10 @@ import me.owdding.skyblockpv.api.data.ProfileId
 import me.owdding.skyblockpv.data.SortedEntry.Companion.sortToCollectionsOrder
 import me.owdding.skyblockpv.data.SortedEntry.Companion.sortToSkillsOrder
 import me.owdding.skyblockpv.data.SortedEntry.Companion.sortToSlayerOrder
-import me.owdding.skyblockpv.data.api.AttributesData
-import me.owdding.skyblockpv.data.api.Bank
-import me.owdding.skyblockpv.data.api.CfData
-import me.owdding.skyblockpv.data.api.CollectionItem
+import me.owdding.skyblockpv.data.api.*
 import me.owdding.skyblockpv.data.api.Currency
-import me.owdding.skyblockpv.data.api.Maxwell
-import me.owdding.skyblockpv.data.api.RiftData
-import me.owdding.skyblockpv.data.api.skills.FishData
-import me.owdding.skyblockpv.data.api.skills.ForagingCore
-import me.owdding.skyblockpv.data.api.skills.ForagingData
-import me.owdding.skyblockpv.data.api.skills.Forge
-import me.owdding.skyblockpv.data.api.skills.GlaciteData
-import me.owdding.skyblockpv.data.api.skills.MiningCore
-import me.owdding.skyblockpv.data.api.skills.Pet
-import me.owdding.skyblockpv.data.api.skills.SkillTrees
-import me.owdding.skyblockpv.data.api.skills.TrophyFishData
-import me.owdding.skyblockpv.data.api.skills.combat.BestiaryMobData
-import me.owdding.skyblockpv.data.api.skills.combat.CrimsonIsleData
-import me.owdding.skyblockpv.data.api.skills.combat.DungeonData
-import me.owdding.skyblockpv.data.api.skills.combat.MobData
-import me.owdding.skyblockpv.data.api.skills.combat.SlayerTypeData
+import me.owdding.skyblockpv.data.api.skills.*
+import me.owdding.skyblockpv.data.api.skills.combat.*
 import me.owdding.skyblockpv.data.api.skills.farming.ChipsData
 import me.owdding.skyblockpv.data.api.skills.farming.FarmingData
 import me.owdding.skyblockpv.data.api.skills.farming.GardenData
@@ -56,12 +39,7 @@ import tech.thatgravyboat.skyblockapi.api.events.remote.SkyBlockPvRequired
 import tech.thatgravyboat.skyblockapi.api.profile.profile.ProfileType
 import tech.thatgravyboat.skyblockapi.helpers.McClient
 import tech.thatgravyboat.skyblockapi.helpers.McPlayer
-import tech.thatgravyboat.skyblockapi.utils.extentions.asInt
-import tech.thatgravyboat.skyblockapi.utils.extentions.asList
-import tech.thatgravyboat.skyblockapi.utils.extentions.asLong
-import tech.thatgravyboat.skyblockapi.utils.extentions.asMap
-import tech.thatgravyboat.skyblockapi.utils.extentions.asString
-import tech.thatgravyboat.skyblockapi.utils.extentions.asStringList
+import tech.thatgravyboat.skyblockapi.utils.extentions.*
 import tech.thatgravyboat.skyblockapi.utils.json.getPath
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -289,7 +267,7 @@ data class BackingSkyBlockProfile(
                     dungeonData = future { member.getAs<JsonObject>("dungeons")?.let { DungeonData.fromJson(it) } },
                     mining = future { member.getAs<JsonObject>("mining_core")?.let { MiningCore(it) } },
                     foragingCore = future { member.getAs<JsonObject>("foraging_core")?.let { ForagingCore(it) } },
-                    foraging = future { ForagingData(member.getAs<JsonObject>("foraging") ?: JsonObject()) },
+                    foraging = future { ForagingData(member, member.getAs<JsonObject>("foraging") ?: JsonObject()) },
                     forge = future { member.getAs<JsonObject>("forge")?.let { Forge(it) } },
                     glacite = future { member.getAs<JsonObject>("glacite_player_data")?.let { GlaciteData(it) } },
                     tamingLevelPetsDonated = future { member.getPath("pets_data.pet_care.pet_types_sacrificed").asStringList().filter { it.isNotBlank() } },
@@ -337,7 +315,7 @@ data class BackingSkyBlockProfile(
 
         private fun JsonObject?.getSkillData(totalSocialXp: Long): CompletableFuture<Map<String, Long>> = future {
             val skills = this?.getAs<JsonElement>("experience").asMap { id, amount -> id to amount.asLong(0) }
-                .filterKeys { it != "SKILL_DUNGEONEERING" }
+                .filterKeys { name -> SkillAPI.Skills.entries.any { it.skillApiId.equals(name, true) } }
                 .toMutableMap()
 
             SkillAPI.Skills.entries.forEach { skill ->
