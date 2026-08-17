@@ -6,6 +6,7 @@ import me.owdding.skyblockpv.SkyBlockPv
 import me.owdding.skyblockpv.api.data.profile.SkyBlockProfile
 import me.owdding.skyblockpv.data.api.skills.SkillTreeCurrency
 import me.owdding.skyblockpv.data.repo.StaticForagingData
+import me.owdding.skyblockpv.utils.LayoutUtils.asScrollable
 import me.owdding.skyblockpv.utils.components.PvLayouts
 import me.owdding.skyblockpv.utils.components.PvWidgets
 import me.owdding.skyblockpv.utils.theme.PvColors
@@ -19,13 +20,22 @@ import tech.thatgravyboat.skyblockapi.utils.text.TextStyle.color
 class MainForagingScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : BaseForagingScreen(gameProfile, profile) {
     override val type: ForagingCategory = ForagingCategory.MAIN
 
-    override fun getLayout(bg: DisplayWidget): Layout = PvLayouts.frame {
+    override fun getLayout(bg: DisplayWidget): Layout = PvLayouts.frame(bg.width, bg.height) {
         val information = getInformation(profile)
         val personalBests = getPersonalBests(profile)
 
-        horizontal(5, 0.5f) {
-            widget(information)
-            widget(personalBests)
+        if (information.width + personalBests.width + 5 > bg.width || information.height > bg.height || personalBests.height > bg.height) {
+            widget(
+                PvLayouts.vertical(5, 0.5f) {
+                    widget(information)
+                    widget(personalBests)
+                }.asScrollable(bg.width, bg.height),
+            )
+        } else {
+            horizontal(5, 0.5f) {
+                widget(information)
+                widget(personalBests)
+            }
         }
     }
 

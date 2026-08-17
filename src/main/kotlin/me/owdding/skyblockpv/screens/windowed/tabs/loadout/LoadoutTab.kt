@@ -3,13 +3,12 @@ package me.owdding.skyblockpv.screens.windowed.tabs.loadout
 import com.mojang.authlib.GameProfile
 import earth.terrarium.olympus.client.components.Widgets
 import earth.terrarium.olympus.client.components.base.BaseWidget
-import earth.terrarium.olympus.client.components.buttons.Button
 import earth.terrarium.olympus.client.components.renderers.WidgetRenderers
 import me.owdding.lib.builder.LayoutFactory
 import me.owdding.lib.builder.MIDDLE
 import me.owdding.lib.displays.*
 import me.owdding.lib.extensions.rightPad
-import me.owdding.lib.layouts.withPadding
+import me.owdding.lib.layouts.setPos
 import me.owdding.skyblockpv.SkyBlockPv
 import me.owdding.skyblockpv.api.data.Inventory
 import me.owdding.skyblockpv.api.data.InventoryData
@@ -19,18 +18,12 @@ import me.owdding.skyblockpv.data.api.skills.SkillTreeType
 import me.owdding.skyblockpv.data.repo.SkullTextures
 import me.owdding.skyblockpv.screens.PvTab
 import me.owdding.skyblockpv.screens.windowed.BaseWindowedPvScreen
-import me.owdding.skyblockpv.screens.windowed.elements.ExtraConstants
 import me.owdding.skyblockpv.screens.windowed.tabs.base.SimpleSkillTreeVisualizer
-import me.owdding.skyblockpv.screens.windowed.tabs.mining.MiningSkillTreeScreen
-import me.owdding.skyblockpv.utils.CarouselPageState
 import me.owdding.skyblockpv.utils.CatppuccinColors
-import me.owdding.skyblockpv.utils.ExtraWidgetRenderers
-import me.owdding.skyblockpv.utils.Utils
-import me.owdding.skyblockpv.utils.Utils.framed
+import me.owdding.skyblockpv.utils.LayoutUtils.asScrollable
 import me.owdding.skyblockpv.utils.components.PvLayouts
 import me.owdding.skyblockpv.utils.components.PvWidgets
 import me.owdding.skyblockpv.utils.displays.ExtraDisplays
-import me.owdding.skyblockpv.utils.displays.ExtraDisplays.withInventoryBackground
 import me.owdding.skyblockpv.utils.theme.ThemeSupport
 import net.minecraft.client.gui.layouts.FrameLayout
 import net.minecraft.client.gui.layouts.LayoutElement
@@ -41,9 +34,6 @@ import tech.thatgravyboat.skyblockapi.utils.text.Text
 import tech.thatgravyboat.skyblockapi.utils.text.Text.asComponent
 import tech.thatgravyboat.skyblockapi.utils.text.TextBuilder.append
 import tech.thatgravyboat.skyblockapi.utils.text.TextStyle.color
-import kotlin.collections.chunked
-import kotlin.math.max
-import kotlin.sequences.mapTo
 
 class LoadoutTab(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : BaseWindowedPvScreen("Loadout", gameProfile, profile) {
     override val tab: PvTab = PvTab.LOADOUT
@@ -54,39 +44,25 @@ class LoadoutTab(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
     override fun create(bg: DisplayWidget) {
         val loadouts = profile.inventory?.loadouts?.savedLoadouts?.values?.sortedBy { it.id } ?: emptyList()
         val inventory = profile.inventory
-
         val loadout = profile.inventory?.loadouts
 
         context(loadout, inventory) {
-            PvLayouts.frame(bg.width, bg.height) {
+            val loadoutSelector = createLoadoutSelector(loadouts, bg.height)
 
-                val loadoutSelectorWidth = createLoadoutSelector(loadouts, bg.width / 5, bg.height).apply {
-                    add {
-                        alignHorizontallyLeft()
-                        alignVerticallyMiddle()
-                    }
-                }.width
+            val mainViewWidth = bg.width - loadoutSelector.width - 10
+            val mainViewWidget = mainView(loadouts.find { it.id == selected }, mainViewWidth, bg.height)
 
-                val mainWidth = LayoutFactory.frame(bg.width - bg.width / 5, bg.height) {
-                    mainView(loadouts.find { it.id == selected }, bg.width - bg.width / 3, bg.height).add()
-                }.apply {
-                    add {
-                        alignHorizontallyRight()
-                        alignVerticallyMiddle()
-                    }
-                }.width
+            val seperator = Widgets.renderable(
+                WidgetRenderers.solid<BaseWidget>()
+                    .withColor(CatppuccinColors.Mocha.surface0Color)
+                    .withoutAlpha(),
+            ).withSize(1, bg.height - 20)
 
-                val width = bg.width - (loadoutSelectorWidth + mainWidth)
-
-                val seperator = Widgets.renderable(WidgetRenderers.solid<BaseWidget>().withColor(CatppuccinColors.Mocha.surface0Color).withoutAlpha()).withSize(1, bg.height - 20)
-                PvLayouts.horizontal {
-                    spacer(loadoutSelectorWidth + width)
-                    widget(seperator)
-                }.add {
-                    alignHorizontallyLeft()
-                    alignVerticallyMiddle()
-                }
-            }.applyLayout(bg.x, bg.y)
+            PvLayouts.horizontal(spacing = 5) {
+                widget(loadoutSelector) { alignVerticallyMiddle() }
+                widget(seperator) { alignVerticallyMiddle() }
+                widget(mainViewWidget) { alignVerticallyMiddle() }
+            }.setPos(bg.x, bg.y).visitWidgets(this@LoadoutTab::addRenderableWidget)
         }
     }
 
@@ -99,98 +75,103 @@ class LoadoutTab(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
     }
 
     context(loadout: InventoryData.LoadoutData?, inventory: InventoryData?)
-    fun createLoadoutSelector(loadouts: Collection<InventoryData.SavedLoadout>, width: Int, height: Int) =
-        PvWidgets.label(
-            "Loadouts",
-            LayoutFactory.frame {
-                val widget = LayoutFactory.vertical {
-                    loadouts.chunked(3).rightPad(9, emptyList()).forEachIndexed { row, it ->
-                        LayoutFactory.horizontal {
-                            it.rightPad(3, null).mapIndexed { column, entry ->
-                                val index = column + row * 3
-                                Displays.item(entry.getIcon(inventory)).withTooltip {
-                                    this.add(entry.getName(index))
+    fun createLoadoutSelector(loadouts: Collection<InventoryData.SavedLoadout>, height: Int): LayoutElement {
+        val content = LayoutFactory.frame {
+            val widget = LayoutFactory.vertical {
+                loadouts.chunked(3).rightPad(9, emptyList()).forEachIndexed { row, it ->
+                    LayoutFactory.horizontal {
+                        it.rightPad(3, null).mapIndexed { column, entry ->
+                            val index = column + row * 3
+                            Displays.item(entry.getIcon(inventory)).withTooltip {
+                                this.add(entry.getName(index))
 
-                                    fun MutableComponent.appendValue(value: String?) {
-                                        if (value != null) {
-                                            append(value, CatppuccinColors.Mocha.sapphire)
-                                        } else {
-                                            append("None", CatppuccinColors.Mocha.red)
-                                        }
+                                fun MutableComponent.appendValue(value: String?) {
+                                    if (value != null) {
+                                        append(value, CatppuccinColors.Mocha.sapphire)
+                                    } else {
+                                        append("None", CatppuccinColors.Mocha.red)
                                     }
+                                }
 
+                                this.add {
+                                    append("Id - ", CatppuccinColors.Mocha.text)
+                                    append(entry?.id?.toString() ?: index.toString(), CatppuccinColors.Mocha.sapphire)
+                                }
+
+                                fun addEntries(name: String, id: Int?, list: List<ItemStack>?) {
                                     this.add {
-                                        append("Id - ", CatppuccinColors.Mocha.text)
-                                        append(entry?.id?.toString() ?: index.toString(), CatppuccinColors.Mocha.sapphire)
+                                        append("$name - ", CatppuccinColors.Mocha.text)
+                                        appendValue(id?.toString())
                                     }
 
-                                    fun addEntries(name: String, id: Int?, list: List<ItemStack>?) {
-                                        this.add {
-                                            append("$name - ", CatppuccinColors.Mocha.text)
-                                            appendValue(id?.toString())
-                                        }
-
-                                        if (id != null && !list.isNullOrEmpty()) {
-                                            list.forEach {
-                                                add(" - ") {
-                                                    this.color = CatppuccinColors.Mocha.text
-                                                    append(it.takeUnless { it.isEmpty }?.hoverName ?: Text.of("None", CatppuccinColors.Mocha.red))
-                                                }
+                                    if (id != null && !list.isNullOrEmpty()) {
+                                        list.forEach {
+                                            add(" - ") {
+                                                this.color = CatppuccinColors.Mocha.text
+                                                append(it.takeUnless { it.isEmpty }?.hoverName ?: Text.of("None", CatppuccinColors.Mocha.red))
                                             }
-                                            space()
                                         }
+                                        space()
                                     }
+                                }
 
-                                    addEntries(
-                                        "Armor Set",
+                                addEntries(
+                                    "Armor Set",
+                                    entry?.armorSetId,
+                                    getEntry(
+                                        loadout?.armorSets,
                                         entry?.armorSetId,
-                                        getEntry(
-                                            loadout?.armorSets,
-                                            entry?.armorSetId,
-                                            loadout?.equippedArmorSet,
-                                            inventory?.armorItems?.reversed(),
-                                        ),
-                                    )
+                                        loadout?.equippedArmorSet,
+                                        inventory?.armorItems?.reversed(),
+                                    ),
+                                )
 
-                                    addEntries(
-                                        "Equipment Set",
+                                addEntries(
+                                    "Equipment Set",
+                                    entry?.equipmentSlotId,
+                                    getEntry(
+                                        loadout?.equipmentSets,
                                         entry?.equipmentSlotId,
-                                        getEntry(
-                                            loadout?.equipmentSets,
-                                            entry?.equipmentSlotId,
-                                            loadout?.equippedEquipmentSet,
-                                            inventory?.equipmentItems,
-                                        ),
-                                    )
+                                        loadout?.equippedEquipmentSet,
+                                        inventory?.equipmentItems,
+                                    ),
+                                )
 
-                                    add("Hotm Preset - ") {
-                                        this.color = CatppuccinColors.Mocha.text
-                                        appendValue(entry?.miningCoreSelectedSlot?.toString())
-                                    }
+                                add("Hotm Preset - ") {
+                                    this.color = CatppuccinColors.Mocha.text
+                                    appendValue(entry?.miningCoreSelectedSlot?.toString())
+                                }
 
+                                add("Hotf Preset - ") {
+                                    this.color = CatppuccinColors.Mocha.text
+                                    appendValue(entry?.foragingCoreSelectedSlot?.toString())
+                                }
+                            }.withPadding(2).asButtonLeft {
+                                selected = entry?.id ?: (index + 1)
+                                safelyRebuild()
+                            }.add()
+                        }
+                    }.add()
+                }
+            }
+            widget(ExtraDisplays.inventoryBackground(3, 9, Displays.empty(widget.width, widget.height).withPadding(2)).asWidget()) {
+                alignHorizontallyCenter()
+                alignVerticallyMiddle()
+            }
+            widget(widget) {
+                alignHorizontallyCenter()
+                alignVerticallyMiddle()
+            }
+        }
 
-                                    add("Hotf Preset - ") {
-                                        this.color = CatppuccinColors.Mocha.text
-                                        appendValue(entry?.foragingCoreSelectedSlot?.toString())
-                                    }
-                                }.withPadding(2).asButtonLeft {
-                                    selected = entry?.id ?: (index + 1)
-                                    safelyRebuild()
-                                }.add()
-                            }
-                        }.add()
-                    }
-                }
-                widget(ExtraDisplays.inventoryBackground(3, 9, Displays.empty(widget.width, widget.height).withPadding(2)).asWidget()) {
-                    alignHorizontallyCenter()
-                    alignVerticallyMiddle()
-                }
-                widget(widget) {
-                    alignHorizontallyCenter()
-                    alignVerticallyMiddle()
-                }
-            },
-        ).framed(width, height)
+        val labelWidget = PvWidgets.label("Loadouts", content)
+
+        return if (labelWidget.height > height) {
+            labelWidget.asScrollable(labelWidget.width + 20, height)
+        } else {
+            labelWidget
+        }
+    }
 
     fun InventoryData.SavedLoadout?.getName(index: Int): MutableComponent = when {
         this == null -> Text.of("Template $index") {
@@ -240,7 +221,6 @@ class LoadoutTab(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
             ),
         )?.let { return it }
 
-
         if (this.miningCoreSelectedSlot != null) {
             return SkullTextures.HOTM.skull
         }
@@ -264,51 +244,70 @@ class LoadoutTab(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
     }
 
     context(loadouts: InventoryData.LoadoutData?, inventory: InventoryData?)
-    fun mainView(loadout: InventoryData.SavedLoadout?, width: Int, height: Int): LayoutElement = LayoutFactory.frame(width, height) {
-
+    fun mainView(loadout: InventoryData.SavedLoadout?, width: Int, height: Int): LayoutElement {
         val armor = getEntry(loadouts?.armorSets, loadout?.armorSetId, loadouts?.equippedArmorSet, inventory?.armorItems?.reversed())
         val equipment = getEntry(loadouts?.equipmentSets, loadout?.equipmentSlotId, loadouts?.equippedEquipmentSet, inventory?.equipmentItems)
 
         val pet = profile.pets.find { it.uniqueId == loadout?.pet }
 
-        horizontal(alignment = MIDDLE, spacing = 5) {
-            val middle = LayoutFactory.vertical(alignment = MIDDLE, spacing = 5) {
-                display(
-                    ExtraDisplays.inventoryBackground(
-                        2, 4,
-                        Displays.padding(
-                            2,
-                            listOf(
-                                PvWidgets.orderedArmorDisplay(armor.orEmpty()),
-                                PvWidgets.orderedEquipmentDisplay(equipment.orEmpty()),
-                            ).toRow(),
-                        ),
+        val middle = PvLayouts.vertical(alignment = MIDDLE, spacing = 5) {
+            display(
+                ExtraDisplays.inventoryBackground(
+                    2, 4,
+                    Displays.padding(
+                        2,
+                        listOf(
+                            PvWidgets.orderedArmorDisplay(armor.orEmpty()),
+                            PvWidgets.orderedEquipmentDisplay(equipment.orEmpty()),
+                        ).toRow(),
                     ),
-                )
-                display(
-                    ExtraDisplays.inventorySlot(
-                        (pet?.itemStack?.let {
-                            Displays.item(it, showTooltip = true, customStackText = pet.level)
-                        } ?: Displays.background(ThemeSupport.texture(SkyBlockPv.id("icon/slot/bone")), Displays.empty(16, 16))).withPadding(2),
-                    ),
-                )
+                ),
+            )
+            display(
+                ExtraDisplays.inventorySlot(
+                    (pet?.itemStack?.let {
+                        Displays.item(it, showTooltip = true, customStackText = pet.level)
+                    } ?: Displays.background(ThemeSupport.texture(SkyBlockPv.id("icon/slot/bone")), Displays.empty(16, 16))).withPadding(2),
+                ),
+            )
+        }
+
+        val isNarrow = width < 550
+        val treeWidth = if (isNarrow) width else width / 2 - middle.width / 2 - 10
+        val treeHeight = height
+
+        val mining = SimpleSkillTreeVisualizer(
+            loadout?.miningCoreSelectedSlot?.let { profile.skillTrees?.select(SkillTreeType.MINING, it) } ?: profile.skillTrees?.selectedMining,
+            SkillTreeType.MINING,
+        ).createLayout(FrameLayout(treeWidth, treeHeight))
+
+        val foraging = SimpleSkillTreeVisualizer(
+            loadout?.foragingCoreSelectedSlot?.let { profile.skillTrees?.select(SkillTreeType.FORAGING, it) } ?: profile.skillTrees?.selectedForaging,
+            SkillTreeType.FORAGING,
+        ).createLayout(FrameLayout(treeWidth, treeHeight))
+
+        val hotmWidget = PvWidgets.label("HOTM Loadout", mining)
+        val equipWidget = PvWidgets.label("Equipment", middle)
+        val hotfWidget = PvWidgets.label("HOTF Loadout", foraging)
+
+        val content = if (isNarrow || (hotmWidget.width + equipWidget.width + hotfWidget.width + 10 > width)) {
+            PvLayouts.vertical(alignment = MIDDLE, spacing = 10) {
+                widget(hotmWidget)
+                widget(equipWidget)
+                widget(hotfWidget)
             }
+        } else {
+            PvLayouts.horizontal(alignment = MIDDLE, spacing = 5) {
+                widget(hotmWidget)
+                widget(equipWidget)
+                widget(hotfWidget)
+            }
+        }
 
-            val mining = SimpleSkillTreeVisualizer(
-                loadout?.miningCoreSelectedSlot?.let { profile.skillTrees?.select(SkillTreeType.MINING, it) } ?: profile.skillTrees?.selectedMining,
-                SkillTreeType.MINING,
-            ).createLayout(FrameLayout(width / 2 - middle.width / 2 - 10, height))
-
-            val foraging = SimpleSkillTreeVisualizer(
-                loadout?.foragingCoreSelectedSlot?.let { profile.skillTrees?.select(SkillTreeType.FORAGING, it) } ?: profile.skillTrees?.selectedForaging,
-                SkillTreeType.FORAGING,
-            ).createLayout(FrameLayout(width / 2 - middle.width / 2 - 10, height))
-
-
-            PvWidgets.label("HOTM Loadout", mining).add()
-            PvWidgets.label("Equipment", middle).add()
-            PvWidgets.label("HOTF Loadout", foraging).add()
-
+        return if (content.height > height) {
+            content.asScrollable(width + 20, height)
+        } else {
+            content
         }
     }
 }
