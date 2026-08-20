@@ -139,9 +139,12 @@ class MainMiningScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = nul
                 val tree = profile.skillTrees?.selectedMining
                 fun grayText(text: String) = display(ExtraDisplays.grayText(text))
                 val totalRuns = mining.crystals.filter { it.key in nucleusRunCrystals }.minOfOrNull { it.value.totalPlaced } ?: 0
-                val hotmLevel = tree?.getTreeLevel() ?: 0
 
-                grayText("HotM: $hotmLevel")
+                if (tree != null) {
+                    display(tree.getLevelDisplay("HotM"))
+                } else {
+                    grayText("HotM: 0")
+                }
                 grayText("Total Runs: ${totalRuns.toFormattedString()}")
 
                 display(rockPetDisplay)

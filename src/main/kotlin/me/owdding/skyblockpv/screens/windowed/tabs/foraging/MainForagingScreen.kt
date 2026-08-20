@@ -2,6 +2,7 @@ package me.owdding.skyblockpv.screens.windowed.tabs.foraging
 
 import com.mojang.authlib.GameProfile
 import me.owdding.lib.displays.DisplayWidget
+import me.owdding.lib.displays.toColumn
 import me.owdding.skyblockpv.SkyBlockPv
 import me.owdding.skyblockpv.api.data.profile.SkyBlockProfile
 import me.owdding.skyblockpv.data.api.skills.SkillTreeCurrency
@@ -9,6 +10,7 @@ import me.owdding.skyblockpv.data.repo.StaticForagingData
 import me.owdding.skyblockpv.utils.LayoutUtils.asScrollable
 import me.owdding.skyblockpv.utils.components.PvLayouts
 import me.owdding.skyblockpv.utils.components.PvWidgets
+import me.owdding.skyblockpv.utils.displays.ExtraDisplays
 import me.owdding.skyblockpv.utils.theme.PvColors
 import net.minecraft.client.gui.layouts.Layout
 import net.minecraft.util.ARGB
@@ -43,6 +45,13 @@ class MainForagingScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = n
         "Information",
         PvLayouts.vertical(3) {
             val foraging = profile.foraging
+
+            val tree = profile.skillTrees?.selectedForaging
+            if (tree != null) {
+                display(tree.getLevelDisplay("HotF"))
+            } else {
+                string("HotF: 0") { color = PvColors.GRAY }
+            }
 
             fun addGifts(name: String, level: Int, max: Int, amount: Int) {
                 string("$name Gifts: ") {

@@ -1,15 +1,25 @@
 package me.owdding.skyblockpv.data.api.skills
 
 import com.google.gson.JsonObject
+import me.owdding.lib.displays.Display
+import me.owdding.lib.displays.toColumn
+import me.owdding.lib.displays.withTooltip
+import me.owdding.lib.extensions.round
 import me.owdding.lib.repo.TreeNode
 import me.owdding.lib.repo.TreeRepoData
 import me.owdding.skyblockpv.data.repo.SkullTextures
 import me.owdding.skyblockpv.screens.windowed.tabs.base.SkillTreeItems
 import me.owdding.skyblockpv.utils.ParseHelper
+import me.owdding.skyblockpv.utils.displays.ExtraDisplays
 import me.owdding.skyblockpv.utils.json.getAs
+import me.owdding.skyblockpv.utils.theme.PvColors
+import tech.thatgravyboat.skyblockapi.utils.builders.TooltipBuilder
 import tech.thatgravyboat.skyblockapi.utils.extentions.asBoolean
 import tech.thatgravyboat.skyblockapi.utils.extentions.asInt
 import tech.thatgravyboat.skyblockapi.utils.extentions.asString
+import tech.thatgravyboat.skyblockapi.utils.extentions.toFormattedString
+import tech.thatgravyboat.skyblockapi.utils.text.TextBuilder.append
+import tech.thatgravyboat.skyblockapi.utils.text.TextStyle.color
 
 class SkillTree(override val json: JsonObject, id: String, skillType: String, treeType: String, val skillTreeType: SkillTreeType) : ParseHelper {
 
@@ -30,28 +40,50 @@ class SkillTree(override val json: JsonObject, id: String, skillType: String, tr
     val lastReset: Long by long("last_reset.$skillType")
 
     // todo repo, low prio
-    val levelToExp = mapOf(
-        1 to 0,
-        2 to 3_000,
-        3 to 12_000,
-        4 to 37_000,
-        5 to 97_000,
-        6 to 197_000,
-        7 to 347_000,
-        8 to 557_000,
-        9 to 847_000,
-        10 to 1_247_000,
-    )
+    val levelToExp get() = skillTreeType.levelToExp
 
     fun getTreeLevel(): Int = levelToExp.entries.findLast { it.value <= experience }?.key ?: 0
     fun getXpToNextLevel() = experience - (levelToExp[getTreeLevel()] ?: 0)
-    fun getXpRequiredForNextLevel(): Int {
+    fun getXpRequiredForNextLevel(): Long {
         val level = (getTreeLevel() + 1).coerceAtMost(10)
         return (levelToExp[level] ?: 0) - (levelToExp[level - 1] ?: 0)
     }
 
     fun getAbilityLevel(coreNode: String) = 1.takeIf { (nodes[coreNode] ?: 0) < 1 } ?: 2
 
+    fun getLevelDisplay(prefix: String): Display {
+        val level = getTreeLevel()
+        val maxLevel = levelToExp.keys.maxOrNull() ?: 10
+        val isMaxed = level >= maxLevel
+
+        val xpReq = getXpRequiredForNextLevel()
+        val xpToNext = getXpToNextLevel()
+        val progressAmt = if (isMaxed || xpReq <= 0) 1f else (xpToNext.toFloat() / xpReq).coerceIn(0f, 1f)
+
+        val tooltip = TooltipBuilder().apply {
+            add("$prefix Level: $level") { color = PvColors.YELLOW }
+
+            if (isMaxed) {
+                add("Progress to Max: ") {
+                    color = PvColors.GRAY
+                    append("Maxed") { color = PvColors.GOLD }
+                }
+            } else {
+                add("Progress to Level ${level + 1}: ") {
+                    color = PvColors.GRAY
+                    append(xpToNext.toFormattedString()) { color = PvColors.YELLOW }
+                    append("/") { color = PvColors.GOLD }
+                    append(xpReq.toFormattedString()) { color = PvColors.YELLOW }
+                    append(" (${(progressAmt * 100).round()}%)") { color = PvColors.GREEN }
+                }
+            }
+        }.build()
+
+        return listOf(
+            ExtraDisplays.grayText("$prefix: $level"),
+            ExtraDisplays.progress(progressAmt, isMaxed),
+        ).toColumn(2).withTooltip(tooltip)
+    }
 }
 
 enum class SkillTreeType(
@@ -63,6 +95,7 @@ enum class SkillTreeType(
     val skullTextures: SkullTextures,
     val spentPath: (currency: CurrencyType, index: Int) -> String,
     val totalPath: (currency: CurrencyType) -> String,
+    val levelToExp: Map<Int, Long>,
 ) {
     MINING(
         "mining",
@@ -73,6 +106,10 @@ enum class SkillTreeType(
         SkullTextures.HOTM,
         { currency, index -> "powder_spent_${currency.name.lowercase()}" + if (index > 1) "_$index" else "" },
         { currency -> "powder_${currency.name.lowercase()}" },
+        mapOf(
+            1 to 0L, 2 to 3_000L, 3 to 12_000L, 4 to 37_000L, 5 to 97_000L,
+            6 to 197_000L, 7 to 347_000L, 8 to 557_000L, 9 to 847_000L, 10 to 1_247_000L,
+        ),
     ),
     FORAGING(
         "foraging",
@@ -83,6 +120,10 @@ enum class SkillTreeType(
         SkullTextures.HOTF,
         { currency, index -> "${currency.name.lowercase()}.$index.spent" },
         { currency -> "${currency.name.lowercase()}.total" },
+        mapOf(
+            1 to 0L, 2 to 3_000L, 3 to 12_000L, 4 to 37_000L,
+            5 to 97_000L, 6 to 197_000L, 7 to 347_000L, 8 to 547_000L,
+        ),
     ),
     ;
 }
@@ -135,10 +176,10 @@ enum class CurrencyType(val treeType: SkillTreeType) {
 
 data class SkillTreeCurrency(
     override val json: JsonObject,
-    val currency: CurrencyType
-):  ParseHelper {
+    val currency: CurrencyType,
+) : ParseHelper {
     companion object {
-        fun of(currency: CurrencyType) = { obj: JsonObject -> SkillTreeCurrency(obj, currency)}
+        fun of(currency: CurrencyType) = { obj: JsonObject -> SkillTreeCurrency(obj, currency) }
     }
 
     val first: Int by int(currency.spent(1))
