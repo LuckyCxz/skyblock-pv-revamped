@@ -23,6 +23,7 @@ import me.owdding.skyblockpv.utils.CatppuccinColors
 import me.owdding.skyblockpv.utils.LayoutUtils.asScrollable
 import me.owdding.skyblockpv.utils.components.PvLayouts
 import me.owdding.skyblockpv.utils.components.PvWidgets
+import me.owdding.skyblockpv.utils.components.PvWidgets.withLabel
 import me.owdding.skyblockpv.utils.displays.ExtraDisplays
 import me.owdding.skyblockpv.utils.theme.ThemeSupport
 import net.minecraft.client.gui.layouts.FrameLayout
@@ -250,7 +251,7 @@ class LoadoutTab(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
 
         val pet = profile.pets.find { it.uniqueId == loadout?.pet }
 
-        val middle = PvLayouts.vertical(alignment = MIDDLE, spacing = 5) {
+        val equipWidget = PvLayouts.vertical(alignment = MIDDLE, spacing = 5) {
             display(
                 ExtraDisplays.inventoryBackground(
                     2, 4,
@@ -270,44 +271,75 @@ class LoadoutTab(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
                     } ?: Displays.background(ThemeSupport.texture(SkyBlockPv.id("icon/slot/bone")), Displays.empty(16, 16))).withPadding(2),
                 ),
             )
-        }
+        }.withLabel("Equipment")
 
-        val isNarrow = width < 550
-        val treeWidth = if (isNarrow) width else width / 2 - middle.width / 2 - 10
-        val treeHeight = height
+        val treeHeight = (height - 25).coerceAtLeast(100)
 
-        val mining = SimpleSkillTreeVisualizer(
+        val miningVisualizer = SimpleSkillTreeVisualizer(
             loadout?.miningCoreSelectedSlot?.let { profile.skillTrees?.select(SkillTreeType.MINING, it) } ?: profile.skillTrees?.selectedMining,
             SkillTreeType.MINING,
-        ).createLayout(FrameLayout(treeWidth, treeHeight))
-
-        val foraging = SimpleSkillTreeVisualizer(
+        )
+        val foragingVisualizer = SimpleSkillTreeVisualizer(
             loadout?.foragingCoreSelectedSlot?.let { profile.skillTrees?.select(SkillTreeType.FORAGING, it) } ?: profile.skillTrees?.selectedForaging,
             SkillTreeType.FORAGING,
-        ).createLayout(FrameLayout(treeWidth, treeHeight))
+        )
 
-        val hotmWidget = PvWidgets.label("HOTM Loadout", mining)
-        val equipWidget = PvWidgets.label("Equipment", middle)
-        val hotfWidget = PvWidgets.label("HOTF Loadout", foraging)
+        // Layout - All horizontally
+        val treeWidth1 = ((width - equipWidget.width - 25) / 2).coerceAtLeast(0)
 
-        val content = if (isNarrow || (hotmWidget.width + equipWidget.width + hotfWidget.width + 10 > width)) {
-            PvLayouts.vertical(alignment = MIDDLE, spacing = 10) {
-                widget(hotmWidget)
+        val hotmWidget1 = miningVisualizer.createLayout(FrameLayout(treeWidth1, treeHeight)).withLabel("HOTM Loadout")
+        val hotfWidget1 = foragingVisualizer.createLayout(FrameLayout(treeWidth1, treeHeight)).withLabel("HOTF Loadout")
+
+        val totalLayout1Width = hotmWidget1.width + equipWidget.width + hotfWidget1.width + 10
+
+        val content = if (totalLayout1Width <= width && treeWidth1 >= 90) {
+            PvLayouts.horizontal(alignment = MIDDLE, spacing = 5) {
+                widget(hotmWidget1)
                 widget(equipWidget)
-                widget(hotfWidget)
+                widget(hotfWidget1)
             }
         } else {
-            PvLayouts.horizontal(alignment = MIDDLE, spacing = 5) {
-                widget(hotmWidget)
-                widget(equipWidget)
-                widget(hotfWidget)
+            // Layout - Equipment Row + Trees Row
+            val treeWidth2 = ((width - 20) / 2).coerceAtLeast(0)
+
+            val hotmWidget2 = miningVisualizer.createLayout(FrameLayout(treeWidth2, treeHeight)).withLabel("HOTM Loadout")
+            val hotfWidget2 = foragingVisualizer.createLayout(FrameLayout(treeWidth2, treeHeight)).withLabel("HOTF Loadout")
+
+            val totalLayout2TreeWidth = hotmWidget2.width + hotfWidget2.width + 5
+
+            if (totalLayout2TreeWidth <= width && treeWidth2 >= 90) {
+                PvLayouts.vertical(alignment = MIDDLE, spacing = 10) {
+                    widget(equipWidget) { alignHorizontallyCenter() }
+                    widget(
+                        PvLayouts.horizontal(alignment = MIDDLE, spacing = 5) {
+                            widget(hotmWidget2)
+                            widget(hotfWidget2)
+                        },
+                    ) { alignHorizontallyCenter() }
+                }
+            } else {
+                // Layout - All Vertically
+                val hotmWidget3 = miningVisualizer.createLayout(FrameLayout(width - 10, treeHeight)).withLabel("HOTM Loadout")
+                val hotfWidget3 = foragingVisualizer.createLayout(FrameLayout(width - 10, treeHeight)).withLabel("HOTF Loadout")
+
+                PvLayouts.vertical(alignment = MIDDLE, spacing = 10) {
+                    widget(equipWidget) { alignHorizontallyCenter() }
+                    widget(hotmWidget3) { alignHorizontallyCenter() }
+                    widget(hotfWidget3) { alignHorizontallyCenter() }
+                }
             }
         }
 
-        return if (content.height > height) {
-            content.asScrollable(width + 20, height)
+        val centeredContent = LayoutFactory.frame(width, content.height) {
+            widget(content) {
+                alignHorizontallyCenter()
+            }
+        }
+
+        return if (centeredContent.height > height) {
+            centeredContent.asScrollable(width + 20, height)
         } else {
-            content
+            centeredContent
         }
     }
 }
