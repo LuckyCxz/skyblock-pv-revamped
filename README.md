@@ -20,11 +20,17 @@ The Hypixel/profile/API implementation is unchanged.
 
 ### Appearance
 
-Open **Appearance** from the sidebar. Select Midnight, Amethyst, or High contrast,
-or enter custom `#RRGGBB` colors. Click **Apply** to persist changes. Invalid values
+Open **Appearance** from the sidebar. Click Red, Green, Blue, Cyan, Orange, Pink,
+Purple, Midnight, Amethyst, or High contrast to apply and save a complete theme
+immediately. No color codes are needed. **Custom colors** reveals the optional
+`#RRGGBB` editor; click **Apply** to save custom colors/effects. Invalid values
 are rejected without replacing your saved settings. Reset restores the selected
 resource-pack theme. Custom UI settings apply globally until reset; cycling legacy
 themes still changes their formatting colors and texture mappings.
+
+Inventory pages show one complete page with Previous/Next controls and a page
+counter. The clipped neighboring-page previews have been removed. Tall layouts
+remain scrollable on small windows.
 
 UI roles: background, sidebar, surface, surfaceAlt, primary, secondary, text,
 muted, border, hover, selected, positive, warning, negative. Effects include panel

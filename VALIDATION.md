@@ -3,8 +3,8 @@
 - Upstream baseline: `416323d` from `meowdding/skyblock-pv`, with history retained.
 - JDK 25; Gradle wrapper builds Minecraft 26.1 and 26.2.
 - `gradlew.bat build`: compilation, packaging, and tests for both versions.
-- Three regression tests per version: legacy theme decoding, preset/effect
-  round-trips, and bounds on untrusted effect values.
+- Four regression tests per version: legacy theme decoding, preset/effect
+  round-trips, bounds on untrusted effect values, and named color preset availability.
 - The original `LICENSE` and the complete API source directory are unchanged.
 - JARs include `LICENSE` and `NOTICE` attribution.
 

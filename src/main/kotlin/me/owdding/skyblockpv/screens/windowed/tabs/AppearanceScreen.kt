@@ -21,14 +21,15 @@ import me.owdding.skyblockpv.utils.theme.UiTheme
 import me.owdding.skyblockpv.utils.theme.UiWidgets
 import tech.thatgravyboat.skyblockapi.utils.text.Text
 
-/** Edits are staged until Apply; invalid input never replaces the saved theme. */
+/** Presets apply immediately; custom edits are staged and validated until Apply. */
 class AppearanceScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) :
     BaseWindowedPvScreen("APPEARANCE", gameProfile, profile) {
     override val tab = PvTab.APPEARANCE
     private var draft = ThemeSupport.ui
     private val inputs = linkedMapOf<String, String>()
-    private var message = "Colors: #RRGGBB. Changes are saved with Apply."
+    private var message = "Choose a color theme below. No color codes needed."
     private var failed = false
+    private var showCustomColors = false
 
     private fun button(label: String, action: () -> Unit) = Button().withSize(((uiWidth - 22) / 2).coerceIn(70, 100), 22).withTexture(null)
         .withRenderer(UiWidgets.navigation(Text.of(label))).withCallback { action() }.withTooltip(Text.of(label))
@@ -92,19 +93,28 @@ class AppearanceScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = nul
         addRenderableOnly(PvWidgets.text(Text.of(message).withColor(statusColor)).withSize(uiWidth - 16, 20).withPosition(bg.x + 8, bg.y + 32))
 
         PvLayouts.vertical(6) {
-            widget(PvWidgets.text("Presets (select, then Apply)").withSize(uiWidth - 36, 18))
-            UiTheme.presets.forEach { (label, theme) ->
-                widget(button(label) {
-                    draft = theme
-                    inputs.clear()
-                    message = "$label selected. Apply to save."
-                    failed = false
-                    safelyRebuild()
-                })
+            widget(PvWidgets.text("Color themes — click to apply").withSize(uiWidth - 36, 18))
+            UiTheme.presets.entries.chunked(if (uiWidth >= 260) 2 else 1).forEach { row ->
+                horizontal(6) {
+                    row.forEach { (label, theme) ->
+                        widget(button(label) {
+                            ThemeSupport.saveUi(theme)
+                            draft = theme
+                            inputs.clear()
+                            message = "$label theme applied and saved."
+                            failed = false
+                            safelyRebuild()
+                        })
+                    }
+                }
             }
             widget(button("Blur: ${if (draft.blur) "On" else "Off"}") { draft = draft.copy(effects = draft.effects.copy(blur = !draft.blur)); safelyRebuild() })
             widget(button("Chroma: ${if (draft.chroma) "On" else "Off"}") { draft = draft.copy(effects = draft.effects.copy(chroma = !draft.chroma)); safelyRebuild() })
-            inputs.toMap().forEach { (key, value) ->
+            widget(button(if (showCustomColors) "Hide colors" else "Custom colors") {
+                showCustomColors = !showCustomColors
+                safelyRebuild()
+            })
+            inputs.toMap().filterKeys { showCustomColors || it !in fields }.forEach { (key, value) ->
                 val label = when (key) {
                     "primary" -> "Primary accent"
                     "secondary" -> "Secondary accent"

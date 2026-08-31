@@ -1,6 +1,5 @@
 package me.owdding.skyblockpv.utils.components
 
-import com.mojang.blaze3d.platform.cursor.CursorType
 import com.mojang.blaze3d.platform.cursor.CursorTypes
 import earth.terrarium.olympus.client.components.buttons.Button
 import earth.terrarium.olympus.client.components.renderers.WidgetRenderers
@@ -17,12 +16,6 @@ import me.owdding.skyblockpv.utils.Utils
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.layouts.Layout
 import net.minecraft.client.gui.layouts.LayoutSettings
-import tech.thatgravyboat.skyblockapi.helpers.McFont
-import tech.thatgravyboat.skyblockapi.platform.drawString
-import tech.thatgravyboat.skyblockapi.platform.pushPop
-import tech.thatgravyboat.skyblockapi.platform.scale
-import tech.thatgravyboat.skyblockapi.platform.translate
-import tech.thatgravyboat.skyblockapi.utils.extentions.scissor
 import kotlin.collections.mapIndexed
 
 
@@ -32,114 +25,56 @@ class CarouselWidget(
     width: Int,
 ) : BaseWidget() {
 
-    val leftWidth = McFont.self.width("<")
-    val rightWidth = McFont.self.width(">")
+    private val pageHeight = displays.maxOfOrNull(Display::getHeight) ?: 0
+    private var pageState: PvPageState? = null
 
     init {
-        this.height = displays.maxOfOrNull(Display::getHeight) ?: 0
-        this.width = width
-    }
-
-    private fun GuiGraphicsExtractor.renderCarouselOverlay(block: GuiGraphicsExtractor.() -> Unit) {
-        this.pushPop {
-            block()
-        }
+        // Reserve the complete tallest page plus navigation. Never crop neighboring
+        // inventories to the active page's height or draw them outside this widget.
+        this.height = pageHeight + if (displays.size > 1) 26 else 0
+        this.width = maxOf(width, displays.maxOfOrNull(Display::getWidth) ?: 0)
+        this.index = index.coerceIn(0, (displays.size - 1).coerceAtLeast(0))
     }
 
     override fun extractWidgetRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
-        graphics.requestCursor(CursorType.DEFAULT)
+        val current = displays.getOrNull(index) ?: return
+        current.extract(graphics, x + width / 2, y, alignmentX = 0.5f, alignmentY = 0f)
+        if (displays.size < 2) return
 
-        val curr = displays.getOrNull(index) ?: return
-        val last = displays.getOrNull((index - 1 + displays.size) % displays.size)
-        val next = displays.getOrNull((index + 1) % displays.size)
-
-        val left = x + (width - curr.getWidth()) / 2
-        val right = left + curr.getWidth()
-
-        val midY = y + 10
-        val bottom = y + curr.getHeight()
-        val sideHeight = bottom - midY
-
-        val lastDiff = curr.getHeight() - 10 - (curr.getHeight() - (last?.getHeight() ?: 0)).coerceAtLeast(0)
-        val lastY = midY + sideHeight - lastDiff
-        val lastBottom = lastY + lastDiff
-        graphics.scissor(x..left, lastY..lastBottom) {
-
-            Displays.disableTooltips {
-                last?.extract(graphics, x, lastY)
-            }
-
-            graphics.renderCarouselOverlay {
-                graphics.fill(x, lastY, left, lastBottom, 0x7F000000)
-
-                if (mouseX in x..left && mouseY in lastY..lastBottom) {
-                    graphics.pushPop {
-                        graphics.translate(x + (left - x) / 2f, lastY + lastDiff / 2f - 7.5f)
-                        graphics.scale(2f, 2f)
-                        graphics.drawString("<", -leftWidth / 2, 0, 0xFFFFFF)
-                    }
-                    graphics.requestCursor(CursorTypes.POINTING_HAND)
-                }
-            }
+        val controlsY = y + pageHeight + 6
+        val buttonWidth = minOf(64, width / 3)
+        fun control(left: Int, label: String) {
+            val hovered = mouseX in left until left + buttonWidth && mouseY in controlsY until controlsY + 20
+            me.owdding.skyblockpv.utils.theme.UiWidgets.panel(graphics, left, controlsY, buttonWidth, 20,
+                if (hovered) me.owdding.skyblockpv.utils.theme.ThemeSupport.ui.hover
+                else me.owdding.skyblockpv.utils.theme.ThemeSupport.ui.surfaceAlt)
+            Displays.text(label, color = { me.owdding.skyblockpv.utils.theme.ThemeSupport.ui.text.toUInt() }, shadow = false)
+                .extract(graphics, left + buttonWidth / 2, controlsY + 6, alignmentX = 0.5f)
+            if (hovered) graphics.requestCursor(CursorTypes.POINTING_HAND)
         }
-
-        val nextDiff = curr.getHeight() - 10 - (curr.getHeight() - (next?.getHeight() ?: 0)).coerceAtLeast(0)
-        val nextY = midY + sideHeight - nextDiff
-        val nextBottom = nextY + nextDiff
-
-        graphics.scissor(right..(x + width), nextY..nextBottom) {
-            Displays.disableTooltips {
-                next?.extract(graphics, x + width, nextY, alignmentX = 1f)
-            }
-
-            graphics.renderCarouselOverlay {
-                graphics.fill(right, nextY, x + width, nextBottom, 0x7F000000)
-
-                if (mouseX in right..(x + width) && mouseY in nextY..nextBottom) {
-                    graphics.pushPop {
-                        graphics.translate(right + (x + width - right) / 2f, nextY + nextDiff / 2f - 7.5f)
-                        graphics.scale(2f, 2f)
-                        graphics.drawString(">", -rightWidth / 2, 0, 0xFFFFFF)
-                    }
-                    graphics.requestCursor(CursorTypes.POINTING_HAND)
-                }
-            }
-        }
-
-        curr.extract(graphics, x + width / 2, y, alignmentX = 0.5f, alignmentY = 0f)
+        control(x, "< Previous")
+        control(x + width - buttonWidth, "Next >")
+        Displays.text("${index + 1} / ${displays.size}",
+            color = { me.owdding.skyblockpv.utils.theme.ThemeSupport.ui.muted.toUInt() }, shadow = false)
+            .extract(graphics, x + width / 2, controlsY + 6, alignmentX = 0.5f)
     }
 
     override fun onClick(event: MouseButtonEvent, doubleClick: Boolean) {
+        if (displays.size < 2) return
         val (mouseX, mouseY) = event
-        val curr = displays.getOrNull(index) ?: return
-        val last = displays.getOrNull((index - 1 + displays.size) % displays.size)
-        val next = displays.getOrNull((index + 1) % displays.size)
-
-        val left = x + (width - displays[index].getWidth()) / 2
-        val right = left + displays[index].getWidth()
-
-        val midY = y + 10
-        val bottom = y + curr.getHeight()
-        val sideHeight = bottom - midY
-
-        val lastDiff = curr.getHeight() - 10 - (curr.getHeight() - (last?.getHeight() ?: 0)).coerceAtLeast(0)
-        val lastY = midY + sideHeight - lastDiff
-        val lastBottom = lastY + lastDiff
-
-        if (mouseX.toInt() in x..left && mouseY.toInt() in lastY..lastBottom) {
-            index = (index - 1 + displays.size) % displays.size
+        val controlsY = y + pageHeight + 6
+        if (mouseY < controlsY || mouseY >= controlsY + 20) return
+        val buttonWidth = minOf(64, width / 3)
+        val direction = when {
+            mouseX >= x && mouseX < x + buttonWidth -> -1
+            mouseX >= x + width - buttonWidth && mouseX < x + width -> 1
+            else -> return
         }
-
-        val nextDiff = curr.getHeight() - 10 - (curr.getHeight() - (next?.getHeight() ?: 0)).coerceAtLeast(0)
-        val nextY = midY + sideHeight - nextDiff
-        val nextBottom = nextY + nextDiff
-
-        if (mouseX.toInt() in right..(x + width) && mouseY.toInt() in nextY..nextBottom) {
-            index = (index + 1) % displays.size
-        }
+        index = Math.floorMod(index + direction, displays.size)
+        pageState?.let { Utils.lastTab = CarouselPageState(it, index) }
     }
-
     fun getIcons(perRow: Int = 9, page: PvPageState, displays: () -> List<Display>): Layout {
+        pageState = page
         val buttons = displays.invoke().mapIndexed { index, display ->
             Button()
                 .withSize(20, 20)

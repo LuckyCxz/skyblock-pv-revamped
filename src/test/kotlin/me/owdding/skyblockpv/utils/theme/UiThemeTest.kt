@@ -45,4 +45,10 @@ class UiThemeTest {
         assertEquals(100, theme.backgroundOpacity)
         assertEquals(12, theme.cornerRadius)
     }
+
+    @Test fun standardColorThemesAreAvailableWithoutCustomInput() {
+        val names = listOf("Red", "Green", "Blue", "Cyan", "Orange", "Pink", "Purple")
+        assertTrue(UiTheme.presets.keys.containsAll(names))
+        assertEquals(names.size, names.map { UiTheme.presets.getValue(it).primary }.distinct().size)
+    }
 }
