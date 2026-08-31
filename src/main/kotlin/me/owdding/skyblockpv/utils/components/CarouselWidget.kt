@@ -41,7 +41,7 @@ class CarouselWidget(
         current.extract(graphics, x + width / 2, y, alignmentX = 0.5f, alignmentY = 0f)
         if (displays.size < 2) return
 
-        val controlsY = y + pageHeight + 6
+        val controlsY = y + (displays.getOrNull(index)?.getHeight() ?: 0) + 6
         val buttonWidth = minOf(64, width / 3)
         fun control(left: Int, label: String) {
             val hovered = mouseX in left until left + buttonWidth && mouseY in controlsY until controlsY + 20
@@ -62,7 +62,7 @@ class CarouselWidget(
     override fun onClick(event: MouseButtonEvent, doubleClick: Boolean) {
         if (displays.size < 2) return
         val (mouseX, mouseY) = event
-        val controlsY = y + pageHeight + 6
+        val controlsY = y + (displays.getOrNull(index)?.getHeight() ?: 0) + 6
         if (mouseY < controlsY || mouseY >= controlsY + 20) return
         val buttonWidth = minOf(64, width / 3)
         val direction = when {
@@ -77,7 +77,7 @@ class CarouselWidget(
         pageState = page
         val buttons = displays.invoke().mapIndexed { index, display ->
             Button()
-                .withSize(20, 20)
+                .withSize(32, 32)
                 .withTexture(null)
                 .withRenderer(
                     WidgetRenderers.layered(
@@ -85,7 +85,7 @@ class CarouselWidget(
                             WidgetRenderers.sprite(ExtraConstants.BUTTON_PRIMARY_OPAQUE),
                             WidgetRenderers.sprite(ExtraConstants.BUTTON_DARK_OPAQUE),
                         ) { this.index == index },
-                        WidgetRenderers.center(20, 20, WidgetRenderers.padded(1, 2, 3, 2, DisplayWidget.displayRenderer(display))),
+                        WidgetRenderers.center(32, 32, WidgetRenderers.padded(4, 4, 4, 4, DisplayWidget.displayRenderer(display))),
                     ),
                 ).withCallback {
                     this.index = index
@@ -93,7 +93,10 @@ class CarouselWidget(
                 }
         }
 
-        val rows = buttons.chunked(perRow).map { PvLayouts.horizontal(1) { widget(it) } }
+        val windowWidth = tech.thatgravyboat.skyblockapi.helpers.McClient.self.window.guiScaledWidth
+        val availableWidth = windowWidth - (if (windowWidth < 500) 108 else 132) - 88
+        val columns = minOf(perRow, (availableWidth / 33).coerceAtLeast(1))
+        val rows = buttons.chunked(columns).map { PvLayouts.horizontal(1) { widget(it) } }
         return PvLayouts.vertical(1) {
             rows.forEach {
                 widget(it, LayoutSettings::alignHorizontallyCenter)

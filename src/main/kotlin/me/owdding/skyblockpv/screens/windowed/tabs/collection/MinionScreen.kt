@@ -8,6 +8,7 @@ import me.owdding.skyblockpv.data.repo.MinionCodecs
 import me.owdding.skyblockpv.utils.CarouselPage
 import me.owdding.skyblockpv.utils.LayoutUtils.centerHorizontally
 import me.owdding.skyblockpv.utils.components.CarouselWidget
+import me.owdding.skyblockpv.utils.components.PvWidgets
 import me.owdding.skyblockpv.utils.components.PvLayouts
 import me.owdding.skyblockpv.utils.displays.ExtraDisplays
 import me.owdding.skyblockpv.utils.theme.PvColors
@@ -94,7 +95,7 @@ class MinionScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) :
             List(inventories.size) { index ->
                 val icon = icons[index]
 
-                Displays.item(icon.display.value).withTooltip {
+                PvWidgets.sizedItem(icon.display.value, 24).withTooltip {
                     add(icon.title)
                 }
             }

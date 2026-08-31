@@ -20,6 +20,7 @@ import me.owdding.skyblockpv.utils.Utils
 import me.owdding.skyblockpv.utils.Utils.append
 import me.owdding.skyblockpv.utils.Utils.fixBase64Padding
 import me.owdding.skyblockpv.utils.components.CarouselWidget
+import me.owdding.skyblockpv.utils.components.PvWidgets
 import me.owdding.skyblockpv.utils.components.PvLayouts
 import me.owdding.skyblockpv.utils.displays.ExtraDisplays
 import me.owdding.skyblockpv.utils.theme.PvColors
@@ -33,6 +34,7 @@ import tech.thatgravyboat.skyblockapi.utils.text.TextStyle.italic
 
 class BestiaryScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : BaseCombatScreen(gameProfile, profile), CarouselPage {
     private var carousel: CarouselWidget? = null
+    private val itemSize get() = ((uiWidth - 28) / 8 - 6).coerceIn(12, 28)
     private val MOBS_PER_ROW_SIMPLE = 5
     private val MOBS_PER_ROW_COMPLEX = 8
 
@@ -53,7 +55,7 @@ class BestiaryScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null)
             246,
         )
 
-        val buttonContainer = carousel!!.getIcons(page = toTabState()) { icons.map { Displays.item(it, showTooltip = true) } }
+        val buttonContainer = carousel!!.getIcons(page = toTabState()) { icons.map { PvWidgets.sizedItem(it, 24) } }
 
         widget(
             PvLayouts.vertical(5) {
@@ -80,8 +82,8 @@ class BestiaryScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null)
     private fun ComplexBestiaryCategoryEntry.getCategory() = subcategories.flatMap { it.value.mobs.map { it.getItem() } }.format(MOBS_PER_ROW_COMPLEX)
 
     private fun List<Display>.format(mobsPerRow: Int) = toMutableList()
-        .rightPad(mobsPerRow * 2, Displays.empty(16, 16))
-        .map { Displays.padding(2, it) }
+        .rightPad(mobsPerRow * 2, Displays.empty(itemSize, itemSize))
+        .map { Displays.padding(3, it) }
         .chunked(mobsPerRow)
         .let {
             ExtraDisplays.inventoryBackground(
@@ -163,12 +165,12 @@ class BestiaryScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null)
                 }
             }
         }
-        return Displays.item(
+        return PvWidgets.sizedItem(
             item,
-            customStackText = Text.of(currentLevel.toString()) {
+            itemSize,
+            count = Text.of(currentLevel.toString()) {
                 color = if (currentLevel == maxLevel) PvColors.GOLD else PvColors.WHITE
             },
-            showTooltip = true,
         )
     }
 

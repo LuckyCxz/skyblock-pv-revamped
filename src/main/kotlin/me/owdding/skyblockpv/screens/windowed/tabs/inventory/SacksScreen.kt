@@ -10,6 +10,8 @@ import me.owdding.lib.extensions.withTooltip
 import me.owdding.lib.repo.SacksRepoData
 import me.owdding.skyblockpv.api.data.profile.SkyBlockProfile
 import me.owdding.skyblockpv.utils.Utils.append
+import me.owdding.skyblockpv.utils.components.PvWidgets
+import tech.thatgravyboat.skyblockapi.utils.text.Text
 import me.owdding.skyblockpv.utils.displays.ExtraDisplays
 import net.minecraft.world.item.ItemStack
 import tech.thatgravyboat.skyblockapi.api.repo.apis.SkyBlockItemsRepo
@@ -22,6 +24,8 @@ import tech.thatgravyboat.skyblockapi.utils.text.TextStyle.color
 class SacksScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : BasePagedInventoryScreen<Map<String, Long>>(gameProfile, profile) {
 
     override fun getRawInventory() = profile.inventory?.sacks
+
+    private val itemSize get() = ((uiWidth - 28) / 9 - 6).coerceIn(12, 28)
 
     private val Map<String, Long>.sackDisplays: Map<ItemStack, Display>
         get() = SacksRepoData.data.mapNotNull { sack ->
@@ -44,8 +48,8 @@ class SacksScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : 
                         lore.drop(amount).forEach(::add)
                     }
                 }
-                Displays.item(item, customStackText = it.value.shorten(1), showTooltip = true)
-            }.toMutableList().rightPad(9, Displays.item(ItemStack.EMPTY)).map { Displays.padding(2, it) }.chunked(9).let {
+                PvWidgets.sizedItem(item, itemSize, Text.of(it.value.shorten(1)))
+            }.toMutableList().let { it.rightPad(((it.size + 8) / 9) * 9, Displays.empty(itemSize, itemSize)) }.map { Displays.padding(3, it) }.chunked(9).let {
                 ExtraDisplays.inventoryBackground(
                     9, it.size,
                     Displays.padding(2, it.asTable()),

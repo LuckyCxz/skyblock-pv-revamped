@@ -16,6 +16,7 @@ import me.owdding.skyblockpv.utils.CarouselPage
 import me.owdding.skyblockpv.utils.CatharsisSupport.withCatharsisId
 import me.owdding.skyblockpv.utils.Utils
 import me.owdding.skyblockpv.utils.components.CarouselWidget
+import me.owdding.skyblockpv.utils.components.PvWidgets
 import me.owdding.skyblockpv.utils.components.PvLayouts
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
@@ -74,14 +75,14 @@ abstract class BasePagedInventoryScreen<T>(gameProfile: GameProfile, profile: Sk
         carousel = CarouselWidget(
             inventories,
             carousel?.index ?: carouselStart,
-            maxOf(inventories.maxOfOrNull { it.getWidth() } ?: 0, uiWidth - 40) + 20,
+            inventories.maxOfOrNull { it.getWidth() } ?: 0,
         )
 
         val buttonContainer = carousel!!.getIcons(page = toTabState()) {
             List(inventories.size) { index ->
                 val icon = icons[index]
                 if (itemStackSize) icon.count = index + 1
-                Displays.item(icon, showStackSize = true)
+                PvWidgets.sizedItem(icon, 24)
             }
         }
 

@@ -126,14 +126,14 @@ object PvWidgets {
         Identifier.withDefaultNamespace("container/slot/boots"),
     )
 
-    fun orderedArmorDisplay(list: List<ItemStack>): Display {
+    fun orderedArmorDisplay(list: List<ItemStack>, itemSize: Int = 24): Display {
         val armor = list.take(4).toMutableList().rightPad(4, ItemStack.EMPTY)
 
         return armor.mapIndexed { index, item ->
             if (item.isEmpty) {
-                Displays.background(ThemeSupport.texture(ARMOR_BACKGROUND_IDS[index]), 16, 16)
+                Displays.background(ThemeSupport.texture(ARMOR_BACKGROUND_IDS[index]), itemSize, itemSize)
             } else {
-                Displays.item(item, showTooltip = true)
+                sizedItem(item, itemSize)
             }
         }.map { Displays.padding(2, it) }.toColumn()
     }
@@ -145,14 +145,14 @@ object PvWidgets {
         SkyBlockPv.id("icon/slot/glove"),
     )
 
-    fun orderedEquipmentDisplay(list: List<ItemStack>): Display {
+    fun orderedEquipmentDisplay(list: List<ItemStack>, itemSize: Int = 24): Display {
         val armor = list.take(4).toMutableList().rightPad(4, ItemStack.EMPTY)
 
         return armor.mapIndexed { index, item ->
             if (item.isEmpty) {
-                Displays.background(ThemeSupport.texture(EQUIPMENT_BACKGROUND_IDS[index]), 16, 16)
+                Displays.background(ThemeSupport.texture(EQUIPMENT_BACKGROUND_IDS[index]), itemSize, itemSize)
             } else {
-                Displays.item(item, showTooltip = true)
+                sizedItem(item, itemSize)
             }
         }.map { Displays.padding(2, it) }.toColumn()
     }
@@ -205,12 +205,27 @@ object PvWidgets {
         compoundWidget.withStretchToContentSize()
     }
 
+    fun sizedItem(item: ItemStack, size: Int, count: Component? = if (item.count > 1) Text.of(item.count.toString()) else null): Display {
+        val icon = Displays.item(item, size, size, showTooltip = true, showStackSize = false)
+        return object : Display {
+            override fun getWidth() = size
+            override fun getHeight() = size
+            override fun extract(graphics: net.minecraft.client.gui.GuiGraphicsExtractor) {
+                icon.extract(graphics)
+                if (!item.isEmpty && count != null) {
+                    Displays.text(count, color = { 0xFFFFFFFFu }, shadow = true)
+                        .extract(graphics, size - 1, size - 9, alignmentX = 1f)
+                }
+            }
+        }
+    }
+
     fun createInventory(items: List<ItemStack>, availableWidth: Int? = null): Display {
         val windowWidth = McClient.self.window.guiScaledWidth
         val contentWidth = availableWidth ?: (windowWidth - (if (windowWidth < 500) 108 else 132) - 88)
         val rows = ((items.size + 8) / 9).coerceAtLeast(1)
         val heightLimit = (McClient.self.window.guiScaledHeight - 180) / rows - 6
-        val itemSize = minOf((contentWidth - 4) / 9 - 6, heightLimit).coerceIn(12, 36)
+        val itemSize = minOf((contentWidth - 4) / 9 - 6, heightLimit).coerceIn(12, 32)
         val itemDisplays = items.chunked(9).map { chunk ->
             val updatedChunk = chunk + List(9 - chunk.size) { ItemStack.EMPTY }
             updatedChunk.map { item ->

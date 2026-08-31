@@ -35,7 +35,7 @@ class RiftEnderChestScreen(gameProfile: GameProfile, profile: SkyBlockProfile? =
             List(inventories.size) { index ->
                 val icon = icons[index]
                 icon.count = index + 1
-                Displays.item(icon, showStackSize = true)
+                PvWidgets.sizedItem(icon, 24)
             }
         }
 
