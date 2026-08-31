@@ -84,7 +84,10 @@ class MainScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
                 val statsWidth = available - playerWidth - infoWidth - 24
                 horizontal(12) {
                     widget(getPlayerDisplay(profile, playerWidth))
-                    widget(getGeneralInfo(profile, infoWidth))
+                    vertical(8) {
+                        widget(getGeneralInfo(profile, infoWidth))
+                        widget(getDungeonSection(infoWidth))
+                    }
                     vertical(8) {
                         widget(getSkillSection(profile, statsWidth))
                         widget(getSlayerSection(statsWidth))
@@ -95,6 +98,7 @@ class MainScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
                 horizontal(12) {
                     vertical(8) {
                         widget(getGeneralInfo(profile, column))
+                        widget(getDungeonSection(column))
                         widget(getSlayerSection(column))
                     }
                     vertical(8) {
@@ -105,6 +109,7 @@ class MainScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
                 }
             } else {
                 widget(getGeneralInfo(profile, column))
+                widget(getDungeonSection(column))
                 widget(getSkillSection(profile, column))
                 widget(getSlayerSection(column))
                 widget(getEssenceSection(column))
@@ -114,6 +119,36 @@ class MainScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
         overview.asScrollable(uiWidth, uiHeight).applyLayout(bg.x + 8, bg.y + 4)
     }
 
+    private fun getDungeonSection(width: Int): LayoutElement {
+        if (profile.onStranded) return PvLayouts.empty()
+        val data = profile.dungeonData
+        val content = PvLayouts.vertical(3) {
+            if (data == null) {
+                string("No dungeon data available")
+            } else {
+                val xp = data.dungeonTypes["catacombs"]?.experience ?: 0
+                val level = me.owdding.skyblockpv.data.repo.CatacombsCodecs.getLevelAndProgress(xp, Config.skillOverflow).first
+                val levels = data.classToLevel.values.map { it.first.coerceAtMost(50) }
+                val average = if (levels.isEmpty()) 0.0 else levels.average()
+                val runs = data.dungeonTypes.values.sumOf { dungeon ->
+                    dungeon?.completions?.filterKeys { it != "total" }?.values?.sum() ?: 0L
+                }
+                string("Catacombs: $level")
+                string("Class Average: ${average.round()}")
+                string("Secrets: ${data.secrets.toFormattedString()}")
+                string("Completed Runs: ${runs.toFormattedString()}")
+            }
+            widget(Button().withSize((width - 20).coerceAtLeast(100), 22).withTexture(null)
+                .withRenderer(me.owdding.skyblockpv.utils.theme.UiWidgets.navigation(Text.of("Open Dungeons")))
+                .withCallback {
+                    me.owdding.skyblockpv.utils.Utils.openTab(
+                        me.owdding.skyblockpv.screens.windowed.tabs.combat.CombatCategory.DUNGEONS,
+                        gameProfile, profile,
+                    )
+                })
+        }
+        return PvWidgets.label("Dungeons", content, width = width)
+    }
     private fun getGeneralInfo(profile: SkyBlockProfile, width: Int) = PvLayouts.vertical(alignment = 0.5f) {
         val irrelevantSkills = listOf(
             "SKILL_RUNECRAFTING",

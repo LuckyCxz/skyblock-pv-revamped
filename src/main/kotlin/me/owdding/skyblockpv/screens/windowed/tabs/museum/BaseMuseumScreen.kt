@@ -103,6 +103,7 @@ abstract class BaseMuseumScreen<FilterType : Any, EntryType : Any>(gameProfile: 
 }
 
 data object MiscMuseumCategory : Category {
+    override val hover = "Miscellaneous"
     override fun create(
         gameProfile: GameProfile,
         profile: SkyBlockProfile?,
@@ -115,6 +116,7 @@ data object MiscMuseumCategory : Category {
 }
 
 data class MuseumCategory(val category: RepoMuseumData.MuseumCategory, override val icon: ItemStack, val name: String) : Category {
+    override val hover get() = name
     companion object {
         val entries by lazy {
             RepoMuseumData.categories.map { (name, category) ->

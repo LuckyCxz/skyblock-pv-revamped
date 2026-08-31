@@ -249,34 +249,33 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
             val categories = tab.subcategories(profile)
             val label = +"tab.${tab.name.lowercase()}"
             if (categories.isNotEmpty()) {
-                widget(Widgets.dropdown(
-                    DropdownState<Category>.empty(),
-                    categories,
-                    { Text.of(it.hover) },
-                    { button ->
-                        button.withSize(sidebarWidth - 8, 22).withTexture(null)
-                            .withRenderer(UiWidgets.navigation(label.copy().append(" >"), tab.isSelected(), tab.getIcon(gameProfile)))
-                            .withTooltip(label)
-                    },
-                    { builder ->
-                        builder.withAlignment(OverlayAlignment.RIGHT_TOP)
-                        builder.withEntrySprites(null)
-                        builder.withTexture(ThemeSupport.texture(SkyBlockPv.id("box/rounded_box_thin")))
-                        builder.withSize(150.coerceAtMost(width - sidebarWidth - 32), minOf(categories.size * 26 + 8, height - 48))
-                        builder.withEntryHeight(26)
-                        builder.withEntryRenderer { category ->
-                            UiWidgets.navigation(Text.of(category.hover), category.isSelected, category.icon)
+                widget(Button().withSize(sidebarWidth - 8, 22).withTexture(null)
+                    .withRenderer(UiWidgets.navigation(label.copy().append(" >"), tab.isSelected(), tab.getIcon(gameProfile)))
+                    .apply { withTooltip(label) }
+                    .withCallback {
+                        val selectedCategory = categories.firstOrNull { it.isSelected }
+                        val menuWidth = minOf(160, width - sidebarWidth - 32)
+                        val menuHeight = minOf(categories.size * 26 + 3, height - 48)
+                        earth.terrarium.olympus.client.ui.context.ContextMenu.open(
+                            sidebarWidth + 16, (height - menuHeight) / 2,
+                        ) { menu ->
+                            menu.withBounds(menuWidth, menuHeight)
+                            menu.withTexture(ThemeSupport.texture(SkyBlockPv.id("box/rounded_box_thin")))
+                            categories.forEach { category ->
+                                menu.add {
+                                    Button().withSize(menuWidth - 4, 26).withTexture(null)
+                                        .withRenderer(UiWidgets.navigation(Text.of(category.hover), category == selectedCategory, category.icon))
+                                        .apply { withTooltip(Text.of(category.hover)) }
+                                        .withCallback { Utils.openTab(category, gameProfile, profile) }
+                                }
+                            }
                         }
-                        builder.withCallback { category ->
-                            if (category != null) Utils.openTab(category, gameProfile, profile)
-                        }
-                    },
-                ))
+                    })
             } else {
                 widget(Button().withSize(sidebarWidth - 8, 22).withTexture(null)
                     .withRenderer(UiWidgets.navigation(label, tab.isSelected(), tab.getIcon(gameProfile)))
                     .withCallback { if (!tab.isSelected()) Utils.openTab(tab, gameProfile, profile) }
-                    .withTooltip(label))
+                    .apply { withTooltip(label) })
             }
         }
     }
