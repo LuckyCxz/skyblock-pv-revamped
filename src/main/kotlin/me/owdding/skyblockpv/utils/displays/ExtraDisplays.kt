@@ -10,6 +10,7 @@ import me.owdding.skyblockpv.utils.render.RenderUtils.withTextShader
 import me.owdding.skyblockpv.utils.render.dropdown.createDropdownDisplay
 import me.owdding.skyblockpv.utils.render.dropdown.createDropdownOverlay
 import me.owdding.skyblockpv.utils.theme.PvColors
+import me.owdding.skyblockpv.utils.theme.ThemeSupport
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.FormattedText
@@ -139,8 +140,8 @@ object ExtraDisplays {
         }
     }
 
-    fun grayText(text: String) = Displays.text(text, color = { PvColors.DARK_GRAY.toUInt() }, shadow = false)
-    fun grayText(text: Component) = Displays.text(text, color = { PvColors.DARK_GRAY.toUInt() }, shadow = false)
+    fun grayText(text: String) = Displays.text(text, color = { ThemeSupport.ui.muted.toUInt() }, shadow = false)
+    fun grayText(text: Component) = Displays.text(text, color = { ThemeSupport.ui.muted.toUInt() }, shadow = false)
 
     fun dropdownOverlay(original: Display, color: Int, context: DropdownContext): Display = createDropdownOverlay(original, color, context)
     fun dropdown(original: Display, dropdown: Display, context: DropdownContext): Display = createDropdownDisplay(original, dropdown, context)

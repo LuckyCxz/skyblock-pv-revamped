@@ -11,8 +11,8 @@ import me.owdding.skyblockpv.utils.components.PvWidgets
 import me.owdding.skyblockpv.utils.displays.ExtraDisplays
 
 class InventoryScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : BaseInventoryScreen(gameProfile, profile) {
-    override fun getLayout(bg: DisplayWidget) = PvLayouts.horizontal(10) {
-        val inventory = profile.inventory ?: return@horizontal
+    override fun getLayout(bg: DisplayWidget): net.minecraft.client.gui.layouts.Layout {
+        val inventory = profile.inventory ?: return PvLayouts.empty()
         val armor = inventory.armorItems.orEmpty(4)
         val equipment = inventory.equipmentItems.orEmpty(4)
 
@@ -21,15 +21,16 @@ class InventoryScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null
             PvWidgets.orderedEquipmentDisplay(equipment),
         ).toRow()
 
-        display(
-            ExtraDisplays.inventoryBackground(
-                2, 4,
-                Displays.padding(2, armorAndEquipment),
-            ),
-        )
-
         val inventoryItems = inventory.inventoryItems.orEmpty(36).chunked(9)
         val reorderedItems = (inventoryItems.drop(1) + inventoryItems.take(1)).flatten()
-        widget(PvWidgets.createInventory(reorderedItems).asWidget())
+        val gear = ExtraDisplays.inventoryBackground(2, 4, Displays.padding(2, armorAndEquipment))
+        val bag = PvWidgets.createInventory(reorderedItems)
+        return if (uiWidth < 360) PvLayouts.vertical(10) {
+            display(bag)
+            display(gear)
+        } else PvLayouts.horizontal(12) {
+            display(gear)
+            display(bag)
+        }
     }
 }

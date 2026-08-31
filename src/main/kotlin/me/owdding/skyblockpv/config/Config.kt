@@ -57,6 +57,8 @@ object Config : ConfigKt("skyblockpv/config") {
         { Identifier.tryParse(it) ?: id("normal") },
     )
     var socials by boolean(true) { this.translation = "skyblockpv.config.socials" }
+    // Empty means use the selected resource-pack theme's UI defaults.
+    var appearanceOverride by string("")
     var rememberLastTab by boolean(true) { this.translation = "skyblockpv.config.remember_last_tab" }
     var autocompleteSources by enums(value = SuggestionTypes.entries.toTypedArray()) { this.translation = "skyblockpv.config.autocomplete_sources" }
 

@@ -74,7 +74,7 @@ abstract class BasePagedInventoryScreen<T>(gameProfile: GameProfile, profile: Sk
         carousel = CarouselWidget(
             inventories,
             carousel?.index ?: carouselStart,
-            246,
+            maxOf(inventories.maxOfOrNull { it.getWidth() } ?: 0, uiWidth - 40) + 20,
         )
 
         val buttonContainer = carousel!!.getIcons(page = toTabState()) {

@@ -188,7 +188,7 @@
         }
     },
     "tab": {
-        "main": "General",
+        "main": "Overview",
         "combat": "Combat",
         "collection": "Collections",
         "mining": "Mining",
@@ -199,6 +199,7 @@
         "pets": "Pets",
         "farming": "Farming",
         "chocolate_factory": "Chocolate Factory",
+        "appearance": "Appearance",
         "rift": "Rift",
         "museum": "Museum"
     },

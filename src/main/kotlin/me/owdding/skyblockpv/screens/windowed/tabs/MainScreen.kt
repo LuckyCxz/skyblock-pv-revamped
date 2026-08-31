@@ -75,61 +75,27 @@ class MainScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
     override val tab: PvTab = PvTab.MAIN
 
     override fun create(bg: DisplayWidget) {
-        val middleColumnWidth = (uiWidth * 0.2).toInt()
-        val sideColumnWidth = (uiWidth - middleColumnWidth) / 2
-
-        val leftStuff = PvLayouts.vertical(10) {
-            spacer()
-            widget(getSkillSection(profile, sideColumnWidth - 20))
-            widget(getSlayerSection(sideColumnWidth - 20))
-            widget(getEssenceSection(sideColumnWidth - 20))
-        }
-
-
-        fun Layout.applyLayout() {
-            this.setPos(bg.x, bg.y).visitWidgets(this@MainScreen::addRenderableWidget)
-        }
-
-        if (leftStuff.height < uiHeight) {
-            return PvLayouts.horizontal {
-                vertical {
-                    spacer(height = 10)
-                    widget(getGeneralInfo(profile, sideColumnWidth))
+        val available = uiWidth - 36
+        val column = if (available >= 420) (available - 12) / 2 else available
+        val overview = PvLayouts.vertical(8) {
+            if (available >= 420) {
+                horizontal(12) {
+                    widget(getGeneralInfo(profile, column))
+                    widget(getPlayerDisplay(profile, column.coerceAtMost(140)))
                 }
-                vertical {
-                    val player = getPlayerDisplay(profile, middleColumnWidth)
-                    player.arrangeElements()
-                    spacer(height = (uiHeight - player.height) / 2)
-                    widget(player)
+                horizontal(12) {
+                    widget(getSkillSection(profile, column))
+                    widget(getSlayerSection(column))
                 }
-                widget(leftStuff)
-
-            }.applyLayout()
-        }
-
-        PvLayouts.horizontal {
-            val newWidth = (uiWidth * 0.35).toInt()
-            vertical {
-                val playerDisplay = getPlayerDisplay(profile, newWidth)
-                playerDisplay.arrangeElements()
-                spacer(newWidth, (uiHeight - playerDisplay.height) / 2)
-                horizontal {
-                    spacer(10)
-                    widget(playerDisplay)
-                }
+            } else {
+                widget(getPlayerDisplay(profile, available.coerceAtMost(110)))
+                widget(getGeneralInfo(profile, column))
+                widget(getSkillSection(profile, column))
+                widget(getSlayerSection(column))
             }
-            val width = uiWidth - newWidth - 40
-            widget(
-                PvLayouts.vertical(10) {
-                    widget(getGeneralInfo(profile, width)) {
-                        alignHorizontallyCenter()
-                    }
-                    widget(getSkillSection(profile, width))
-                    widget(getSlayerSection(width))
-                    widget(getEssenceSection(width))
-                }.asScrollable(width + 27, uiHeight),
-            )
-        }.applyLayout()
+            widget(getEssenceSection(column))
+        }
+        overview.asScrollable(uiWidth, uiHeight).applyLayout(bg.x + 8, bg.y + 4)
     }
 
     private fun getGeneralInfo(profile: SkyBlockProfile, width: Int) = PvLayouts.vertical(alignment = 0.5f) {
@@ -294,6 +260,7 @@ class MainScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
                 }
             },
             icon = titleIcon,
+            width = width,
         )
     }
 

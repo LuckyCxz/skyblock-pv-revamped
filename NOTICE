@@ -1,0 +1,11 @@
+SkyBlock PV Revamped
+
+Portions of this code are from the SkyBlockPv mod.
+Original project: https://github.com/meowdding/skyblock-pv
+Original authors: the Meowdding team and SkyBlockPv contributors.
+Imported from upstream commit 416323d, with upstream Git history preserved.
+
+This fork changes the profile viewer GUI and adds UI-specific appearance settings.
+It is not an official Meowdding release.
+The original LICENSE is retained unchanged. Code is covered by the upstream
+MIT license with attribution requirement; non-code assets are CC BY 4.0.

@@ -33,6 +33,7 @@ import me.owdding.skyblockpv.screens.BasePvScreen
 import me.owdding.skyblockpv.screens.PvTab
 import me.owdding.skyblockpv.screens.windowed.elements.ExtraConstants
 import me.owdding.skyblockpv.screens.windowed.tabs.general.NetworthDisplay
+import me.owdding.skyblockpv.screens.windowed.tabs.base.AbstractCategorizedScreen
 import me.owdding.skyblockpv.utils.ChatUtils.sendWithPrefix
 import me.owdding.skyblockpv.utils.ExtraWidgetRenderers
 import me.owdding.skyblockpv.utils.PvPageState
@@ -45,6 +46,8 @@ import me.owdding.skyblockpv.utils.components.PvToast
 import me.owdding.skyblockpv.utils.components.PvWidgets
 import me.owdding.skyblockpv.utils.theme.PvColors
 import me.owdding.skyblockpv.utils.theme.ThemeSupport
+import me.owdding.skyblockpv.utils.theme.UiWidgets
+import me.owdding.skyblockpv.utils.LayoutUtils.asScrollable
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.layouts.FrameLayout
@@ -63,26 +66,39 @@ import tech.thatgravyboat.skyblockapi.utils.text.TextStyle.color
 import tech.thatgravyboat.skyblockapi.utils.text.TextStyle.underlined
 import tech.thatgravyboat.skyblockapi.utils.text.TextUtils.splitLines
 
-private const val ASPECT_RATIO = 16.0 / 9.0
-
 abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, profile: SkyBlockProfile?) : BasePvScreen(name, gameProfile, profile) {
 
-    override val uiWidth get() = (uiHeight * ASPECT_RATIO).toInt()
-    override val uiHeight get() = (this.height * 0.65).toInt()
+    protected val sidebarWidth get() = if (width < 500) 88 else 112
+    override val uiWidth get() = (width - sidebarWidth - 64).coerceAtLeast(160)
+    override val uiHeight get() = (height - 94).coerceAtLeast(100)
     abstract val tab: PvTab
 
     override fun init() {
-        val bg = Displays.background(ThemeSupport.texture(SkyBlockPv.backgroundTexture), uiWidth, uiHeight).asWidget()
-
-        FrameLayout.centerInRectangle(bg, 0, 0, this.width, this.height)
+        val bg = UiWidgets.background(uiWidth, uiHeight) { ThemeSupport.ui.background }.asWidget()
+        bg.setPosition(sidebarWidth + 36, 48)
         bg.applyLayout()
+        val sidebar = UiWidgets.background(sidebarWidth, uiHeight + 32) { ThemeSupport.ui.sidebar }.asWidget()
+        sidebar.setPosition(12, 16)
+        sidebar.applyLayout()
+        val avatar = Displays.item(PvTab.MAIN.getIcon(gameProfile), 20, 20).asWidget()
+        avatar.setPosition(bg.x, 20)
+        avatar.applyLayout()
+        addRenderableOnly(PvWidgets.text(gameProfile.name + "  /  " + tabTitle.string)
+            .withSize(uiWidth - 28, 20).withPosition(bg.x + 28, 20))
+        createTabs().asScrollable(sidebarWidth + 20, uiHeight + 22).applyLayout(12, 22)
+
+        createTopRow(bg).applyLayout(12, height - 26)
+        // Appearance remains available even while a profile is loading or unavailable.
+        if (tab == PvTab.APPEARANCE) {
+            create(bg)
+            return
+        }
 
         when (val profile = profile) {
             is EmptySkyBlockProfile if profile.reason == Reason.LOADING -> addLoader()
             is EmptySkyBlockProfile if profile.reason == Reason.NO_PROFILES -> addNoProfiles()
             is EmptySkyBlockProfile if profile.reason == Reason.ERROR -> addParsingError(profile.throwable!!)
         }
-        createTopRow(bg).applyLayout(5, 5)
 
         if (!isProfileInitialized()) return
         initedWithProfile = true
@@ -113,7 +129,6 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
             errorWidget.applyLayout()
         }
 
-        createTabs().applyLayout(bg.x + 20, bg.y - 22)
         val searchBox = createSearch(bg)
         searchBox.applyLayout()
         createProfileDropdown(bg).let {
@@ -122,19 +137,12 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
             if (!Config.socials) return@let
             val availableWidth = searchBox.x - (it.x + it.width) - 5
             val socialsWidth = availableWidth.coerceIn(0, 100)
+            if (socialsWidth < 24) return@let
             val button = createSocialDropdown(socialsWidth)
             button.setPosition(it.x + it.width + 5, it.y)
             button.applyLayout()
         }
 
-        // Only add the Title if theres enough width
-        val bottomRowWidth = 100 + if (Config.socials) 105 else 0
-        val titleWidth = McFont.width(this.tabTitle)
-        if (this.uiWidth > bottomRowWidth + titleWidth + 50) {
-            addRenderableOnly(
-                PvWidgets.text(this.tabTitle).withCenterAlignment().withSize(this.uiWidth, 20).withPosition(bg.x, bg.bottom + 2),
-            )
-        }
     }
 
     private fun addNoProfiles() {
@@ -223,36 +231,36 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
         widget(networthDebug)
     }
 
-    private fun createTabs() = PvLayouts.horizontal(2) {
-        // as you can see, maya has no idea what she is doing
+    private fun createTabs() = PvLayouts.vertical(3) {
         PvTab.entries.forEach { tab ->
             if (tab.getTabState(profile) == TriState.FALSE) return@forEach
             if (!tab.canDisplay(profile)) return@forEach
 
             val button = Button()
-            button.setSize(20, 31)
+            button.setSize(sidebarWidth - 8, 22)
             button.withTexture(null)
             if (!tab.isSelected()) {
                 button.withCallback { Utils.openTab(tab, gameProfile, profile) }
             }
-            button.withRenderer(
-                WidgetRenderers.layered(
-                    WidgetRenderers.sprite(if (tab.isSelected()) ExtraConstants.TAB_TOP_SELECTED else ExtraConstants.TAB_TOP),
-                    WidgetRenderers.padded(
-                        4 - (1.takeIf { tab.isSelected() } ?: 0), 0, 9, 0,
-                        WidgetRenderers.center(16, 16) { gr, ctx, _ -> gr.item(tab.getIcon(gameProfile), ctx.x, ctx.y) },
-                    ),
-                ),
-            )
+            button.withRenderer(UiWidgets.navigation(+"tab.${tab.name.lowercase()}", tab.isSelected()))
             button.withTooltip(+"tab.${tab.name.lowercase()}")
             widget(button)
+            val categorized = this@BaseWindowedPvScreen as? AbstractCategorizedScreen
+            if (tab.isSelected() && categorized != null) {
+                categorized.categories.filter { it.canDisplay(profile) }.forEach { category ->
+                    widget(Button().withSize(sidebarWidth - 8, 20).withTexture(null)
+                        .withRenderer(UiWidgets.navigation(Text.of("  · ${category.hover}"), category.isSelected))
+                        .withCallback { Utils.openTab(category, gameProfile, profile) }
+                        .withTooltip(Text.of(category.hover)))
+                }
+            }
         }
     }
 
 
     private var coopDropdownVisible = false
     private fun createSearch(bg: DisplayWidget): LayoutElement {
-        var width = 100
+        var width = if (uiWidth < 240) (uiWidth / 2 - 20).coerceAtLeast(55) else 100
 
         return LayoutFactory.horizontal {
             val coopDropdown = Button().apply {
@@ -381,7 +389,7 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
     }
 
     private fun createProfileDropdown(bg: DisplayWidget): LayoutElement {
-        val width = 100
+        val width = (uiWidth / 2 - 16).coerceIn(55, 100)
 
         val dropdownState = DropdownState<SkyBlockProfile>.of(profile)
         val dropdown = Widgets.dropdown(
@@ -461,12 +469,10 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
     }
 
     override fun extractBackground(guiGraphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTick: Float) {
-        if (ThemeSupport.currentTheme.backgroundBlur) {
+        if (ThemeSupport.ui.blur) {
             guiGraphics.applyBackgroundBlur()
-            this.extractTransparentBackground(guiGraphics)
-        } else {
-            this.extractTransparentBackground(guiGraphics)
         }
+        guiGraphics.fill(0, 0, width, height, UiWidgets.alpha(ThemeSupport.ui.background, ThemeSupport.ui.backgroundOpacity))
     }
 
     open fun toTabState(): PvPageState = this.tab

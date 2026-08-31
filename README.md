@@ -1,5 +1,5 @@
 <h1 align="center">
-  SkyBlock Profile Viewer
+  SkyBlock PV Revamped
 </h1>
 
 <div align="center">
@@ -9,10 +9,64 @@
 
 </div>
 
-A Profile Viewer for Hypixel SkyBlock, developed with love and passion.
+A GUI-focused fork of [Meowdding's SkyBlockPv](https://github.com/meowdding/skyblock-pv).
+**Portions of this code are from the SkyBlockPv mod.** The upstream Git history,
+license, assets, and attribution are preserved; this is not an official Meowdding release.
+See [NOTICE](NOTICE) and the unchanged [LICENSE](LICENSE).
+
+Revamped adds a scrollable left sidebar, a player/page header, denser overview
+cards, larger inventory items (with compact-window sizing), and an Appearance editor.
+The Hypixel/profile/API implementation is unchanged.
+
+### Appearance
+
+Open **Appearance** from the sidebar. Select Midnight, Amethyst, or High contrast,
+or enter custom `#RRGGBB` colors. Click **Apply** to persist changes. Invalid values
+are rejected without replacing your saved settings. Reset restores the selected
+resource-pack theme. Custom UI settings apply globally until reset; cycling legacy
+themes still changes their formatting colors and texture mappings.
+
+UI roles: background, sidebar, surface, surfaceAlt, primary, secondary, text,
+muted, border, hover, selected, positive, warning, negative. Effects include panel
+and background opacity (0–100), blur, corner radius (0–12), and optional chroma
+accents. Chroma affects accents only, not item-rarity colors or normal text.
+
+Resource-pack themes can add an optional `ui` object without changing the original
+`colors`, `textures`, `name`, or `background_blur` fields:
+
+```json
+{
+  "name": "My theme",
+  "ui": {
+    "primary": "#79AAFF",
+    "surface": "#1C2638",
+    "effects": {
+      "panelOpacity": 96,
+      "backgroundOpacity": 85,
+      "blur": true,
+      "cornerRadius": 5,
+      "chroma": false
+    }
+  }
+}
+```
+
+Legacy `background_blur: false` remains respected unless the user saves a custom
+UI override. Existing texture mappings remain active for detailed legacy widgets;
+the modern shell and cards use UI roles instead of texture replacements.
+
+### Building this fork
+
+Use JDK **25**, then run `./gradlew build` (Windows: `gradlew.bat build`).
+The upstream Stonecutter configuration builds Minecraft **26.1 and 26.2**.
+Outputs are under `build/libs`. The build includes theme compatibility and
+serialization regression tests. The first build needs network access for Gradle,
+Fabric/Minecraft libraries, and upstream's Hypixel museum resource generation.
+
+### Upstream features and historical screenshots
 
 The Profile Viewer can be opened with ``/pv`` for your own Profile, or ``/pv <username>`` for someone else.
-<br/>You can switch between the tabs using the buttons on the top of the UI.
+<br/>You can switch between tabs using the left sidebar.
 <br/>If a tab has multiple categories, you can switch between them using the buttons on the left side of the UI.
 
 > [!WARNING]
@@ -30,8 +84,8 @@ The Profile Viewer can be opened with ``/pv`` for your own Profile, or ``/pv <us
 
 ### Themes
 
-Comes built-in with three themes: Default (Light), Dark and NEU (transparent).
-Quickly switch between them using the button in the top left corner of the UI.
+The original resource themes (Default, Dark, NEU) are retained for compatibility.
+Quickly switch between them using the eyedropper button below the sidebar.
 
 <details>
 <summary>Theme Showcase</summary>

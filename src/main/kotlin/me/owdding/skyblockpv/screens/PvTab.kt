@@ -8,6 +8,7 @@ import me.owdding.skyblockpv.screens.windowed.BaseWindowedPvScreen
 import me.owdding.skyblockpv.screens.windowed.tabs.ChocolateFactoryScreen
 import me.owdding.skyblockpv.screens.windowed.tabs.FishingScreen
 import me.owdding.skyblockpv.screens.windowed.tabs.MainScreen
+import me.owdding.skyblockpv.screens.windowed.tabs.AppearanceScreen
 import me.owdding.skyblockpv.screens.windowed.tabs.PetScreen
 import me.owdding.skyblockpv.screens.windowed.tabs.base.Category
 import me.owdding.skyblockpv.screens.windowed.tabs.collection.BaseCollectionScreen
@@ -78,6 +79,7 @@ enum class PvTab(
     ),
     CHOCOLATE_FACTORY(ChocolateFactoryScreen::class, SkullTextures.CHOCOLATE_FACTORY.skull.withCatharsisId("tab/chocolate_factory/icon")),
     RIFT(BaseRiftScreen::class, ::MainRiftScreen, SkullTextures.RIFT.skull.withCatharsisId("tab/rift/icon"), true),
+    APPEARANCE(AppearanceScreen::class, ::AppearanceScreen, Items.PAINTING.defaultInstance),
     ;
 
     constructor(

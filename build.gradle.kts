@@ -132,6 +132,8 @@ idea {
 }
 
 tasks.withType<ProcessResources>().configureEach {
+    from(rootProject.file("LICENSE"))
+    from(rootProject.file("NOTICE"))
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     filesMatching(listOf("**/*.fsh", "**/*.vsh")) {
         filter { if (it.startsWith("//!moj_import")) "#${it.substring(3)}" else it }
@@ -164,6 +166,8 @@ tasks.withType<ValidateAccessWidenerTask> { enabled = false }
 
 
 dependencies {
+    testImplementation(kotlin("test-junit5"))
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     "minecraft"(versionedCatalog["minecraft"])
 
     includeImplementation(versionedCatalog["repolib"])
@@ -197,6 +201,12 @@ dependencies {
     ksp(versionedCatalog["meowdding.ktmodules"])
     ksp(versionedCatalog["meowdding.ktcodecs"])
 }
+
+tasks.withType<Test>().configureEach { useJUnitPlatform() }
+
+// Tests consume main's generated codecs; running KSP again creates empty classes
+// with the same names that would shadow the production codecs on the test path.
+tasks.matching { it.name == "kspTestKotlin" }.configureEach { enabled = false }
 
 fun DependencyHandlerScope.includeImplementation(dep: Any) {
     include(dep)

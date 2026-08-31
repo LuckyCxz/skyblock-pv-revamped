@@ -14,6 +14,8 @@ import me.owdding.skyblockpv.utils.displays.ExtraDisplays
 import me.owdding.skyblockpv.utils.displays.ExtraDisplays.asTable
 import me.owdding.skyblockpv.utils.theme.PvColors
 import me.owdding.skyblockpv.utils.theme.ThemeSupport
+import me.owdding.skyblockpv.utils.theme.UiWidgets
+import com.teamresourceful.resourcefullib.common.color.Color
 import net.minecraft.client.gui.layouts.LayoutElement
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
@@ -23,6 +25,7 @@ import net.minecraft.world.level.ItemLike
 import tech.thatgravyboat.skyblockapi.api.datatype.DataTypes
 import tech.thatgravyboat.skyblockapi.api.datatype.getData
 import tech.thatgravyboat.skyblockapi.utils.text.Text
+import tech.thatgravyboat.skyblockapi.helpers.McClient
 
 object PvWidgets {
 
@@ -176,15 +179,15 @@ object PvWidgets {
         }.toTypedArray(),
     )
 
-    fun text(text: Component): TextWidget = Widgets.text(text).withColor(PvColors.DARK_GRAY_COLOR)
-    fun text(text: String): TextWidget = Widgets.text(text).withColor(PvColors.DARK_GRAY_COLOR)
+    fun text(text: Component): TextWidget = Widgets.text(text).withColor(Color(ThemeSupport.ui.text))
+    fun text(text: String): TextWidget = Widgets.text(text).withColor(Color(ThemeSupport.ui.text))
 
     fun getTitleWidget(title: String, width: Int, icon: Identifier? = null) = getTitleWidget(Text.of(title), width, icon)
     fun getTitleWidget(title: Component, width: Int, icon: Identifier? = null): LayoutElement = Widgets.frame { compoundWidget ->
         compoundWidget.withContents { contents ->
-            contents.addChild(Displays.background(ThemeSupport.texture(SkyBlockPv.id("box/title")), width - 10, 20).asWidget())
+            contents.addChild(UiWidgets.background(width, 22) { ThemeSupport.ui.surfaceAlt }.asWidget())
             if (icon != null) contents.addChild(Displays.padding(0, width - 30, 0, 0, Displays.sprite(ThemeSupport.texture(icon), 12, 12)).asWidget())
-            contents.addChild(text(title).centerHorizontally(width))
+            contents.addChild(text(title.copy().withColor(UiWidgets.accent(true))).centerHorizontally(width))
         }
         compoundWidget.withStretchToContentSize()
     }
@@ -196,17 +199,20 @@ object PvWidgets {
             spacer(height = 7)
         }
         compoundWidget.withContents { contents ->
-            contents.addChild(Displays.background(ThemeSupport.texture(SkyBlockPv.id("box/box")), width - 10, contentWithSpacer.height).asWidget())
+            contents.addChild(UiWidgets.background(width, contentWithSpacer.height).asWidget())
             contents.addChild(contentWithSpacer.centerHorizontally(width))
         }
         compoundWidget.withStretchToContentSize()
     }
 
     fun createInventory(items: List<ItemStack>): Display {
+        val windowWidth = McClient.self.window.guiScaledWidth
+        val contentWidth = windowWidth - (if (windowWidth < 500) 88 else 112) - 64
+        val itemSize = ((contentWidth - 32) / 9 - 6).coerceIn(12, 24)
         val itemDisplays = items.chunked(9).map { chunk ->
             val updatedChunk = chunk + List(9 - chunk.size) { ItemStack.EMPTY }
             updatedChunk.map { item ->
-                Displays.padding(2, Displays.item(item, showTooltip = true, showStackSize = true))
+                Displays.padding(3, Displays.item(item, itemSize, itemSize, showTooltip = true, showStackSize = true))
             }
         }
         return ExtraDisplays.inventoryBackground(

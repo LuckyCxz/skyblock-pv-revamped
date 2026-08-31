@@ -2,10 +2,10 @@
     "schemaVersion": 1,
     "id": "skyblockpv",
     "version": "${version}",
-    "name": "SkyBlock Profile Viewer",
-    "description": "",
-    "authors": [],
-    "license": "",
+    "name": "SkyBlock PV Revamped",
+    "description": "A modern profile viewer GUI fork. Portions of this code are from the SkyBlockPv mod by Meowdding and contributors.",
+    "authors": ["Meowdding and SkyBlockPv contributors (upstream)", "LuckyCxz (Revamped fork)"],
+    "license": "SkyBlockPv License v1.1; see bundled LICENSE and NOTICE",
     "icon": "assets/skyblock-pv/skyblock-pv.png",
     "mixins": [
         "skyblockpv.mixins.json"

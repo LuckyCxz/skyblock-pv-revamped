@@ -1,9 +1,6 @@
 package me.owdding.skyblockpv.screens.windowed.tabs.base
 
 import com.mojang.authlib.GameProfile
-import earth.terrarium.olympus.client.components.buttons.Button
-import earth.terrarium.olympus.client.components.renderers.WidgetRenderers
-import earth.terrarium.olympus.client.layouts.Layouts
 import me.owdding.lib.displays.DisplayWidget
 import me.owdding.lib.extensions.floorToHalf
 import me.owdding.lib.layouts.Scalable
@@ -11,15 +8,13 @@ import me.owdding.skyblockpv.SkyBlockPv
 import me.owdding.skyblockpv.api.data.profile.SkyBlockProfile
 import me.owdding.skyblockpv.config.Config
 import me.owdding.skyblockpv.screens.windowed.BaseWindowedPvScreen
-import me.owdding.skyblockpv.screens.windowed.elements.ExtraConstants
 import me.owdding.skyblockpv.utils.PvPageState
-import me.owdding.skyblockpv.utils.Utils
 import me.owdding.skyblockpv.utils.components.PvWidgets
+import me.owdding.skyblockpv.utils.LayoutUtils.asScrollable
 import net.minecraft.client.gui.layouts.FrameLayout
 import net.minecraft.client.gui.layouts.Layout
 import net.minecraft.util.TriState
 import net.minecraft.world.item.ItemStack
-import tech.thatgravyboat.skyblockapi.utils.text.Text.asComponent
 import kotlin.math.min
 
 abstract class AbstractCategorizedScreen(name: String, gameProfile: GameProfile, profile: SkyBlockProfile? = null) :
@@ -47,46 +42,11 @@ abstract class AbstractCategorizedScreen(name: String, gameProfile: GameProfile,
         } else {
             layout.arrangeElements()
         }
-        FrameLayout.centerInRectangle(layout, bg.x, bg.y, uiWidth, uiHeight)
-        layout.visitWidgets(this::addRenderableWidget)
+        val content = if (layout.height > uiHeight) layout.asScrollable(uiWidth, uiHeight) else layout
+        FrameLayout.centerInRectangle(content, bg.x, bg.y, uiWidth, uiHeight)
+        content.visitWidgets(this::addRenderableWidget)
 
 
-        val x = if (Config.alignCategoryButtonsLeft) bg.x - 22 else bg.x + bg.width - 9
-        val y = bg.y + 20
-
-        this.categories.filter { it.canDisplay(profile) }.fold(Layouts.column().withGap(2)) { layout, category ->
-            val button = Button().apply {
-                withSize(31, 20)
-                withCallback { Utils.openTab(category, gameProfile, profile) }
-                withTooltip(category.hover.asComponent())
-            }
-
-            if (Config.alignCategoryButtonsLeft) {
-                button.withTexture(null)
-                button.withRenderer(
-                    WidgetRenderers.layered(
-                        WidgetRenderers.sprite(if (category.isSelected) ExtraConstants.TAB_LEFT_SELECTED else ExtraConstants.TAB_LEFT),
-                        WidgetRenderers.padded(
-                            0, 9, 0, 4,
-                            WidgetRenderers.center(16, 16) { gr, ctx, _ -> gr.item(category.icon, ctx.x, ctx.y) },
-                        ),
-                    ),
-                )
-            } else {
-                button.withTexture(null)
-                button.withRenderer(
-                    WidgetRenderers.layered(
-                        WidgetRenderers.sprite(if (category.isSelected) ExtraConstants.TAB_RIGHT_SELECTED else ExtraConstants.TAB_RIGHT),
-                        WidgetRenderers.padded(
-                            0, 4, 0, 9,
-                            WidgetRenderers.center(16, 16) { gr, ctx, _ -> gr.item(category.icon, ctx.x, ctx.y) },
-                        ),
-                    ),
-                )
-            }
-
-            layout.withChild(button)
-        }.withPosition(x, y).build(this::addRenderableWidget)
     }
 
     override fun toTabState(): PvPageState {

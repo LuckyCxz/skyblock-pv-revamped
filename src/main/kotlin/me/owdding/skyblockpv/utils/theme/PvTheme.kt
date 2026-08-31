@@ -33,6 +33,7 @@ data class PvTheme(
     @NamedCodec("identifier_map") val textures: Map<Identifier, Identifier> = mapOf(),
     val name: String,
     @FieldName("background_blur") val backgroundBlur: Boolean = true,
+    val ui: UiTheme = UiTheme(),
 ) {
     val translation: Component = Component.translatable(name)
 

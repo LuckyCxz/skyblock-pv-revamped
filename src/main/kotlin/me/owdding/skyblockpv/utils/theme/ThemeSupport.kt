@@ -6,6 +6,10 @@ import me.owdding.skyblockpv.config.Config
 import net.minecraft.client.gui.components.WidgetSprites
 import net.minecraft.resources.Identifier
 import kotlin.collections.toList
+import com.google.gson.JsonParser
+import com.mojang.serialization.JsonOps
+import me.owdding.skyblockpv.generated.SkyBlockPvCodecs
+import me.owdding.skyblockpv.SkyBlockPv
 
 object ThemeSupport {
 
@@ -14,8 +18,31 @@ object ThemeSupport {
     val pvColors get() = currentTheme.colors
     val pvTextures get() = currentTheme.textures
 
+    private var cachedOverride = ""
+    private var parsedOverride: UiTheme? = null
+    val ui: UiTheme
+        get() {
+            if (cachedOverride != Config.appearanceOverride) {
+                cachedOverride = Config.appearanceOverride
+                parsedOverride = runCatching {
+                    SkyBlockPvCodecs.UiThemeCodec.codec().parse(JsonOps.INSTANCE, JsonParser.parseString(cachedOverride)).getOrThrow().sanitized()
+                }.getOrNull()
+            }
+            return parsedOverride ?: currentTheme.ui.sanitized().let {
+                it.copy(effects = it.effects.copy(blur = it.blur && currentTheme.backgroundBlur))
+            }
+        }
+
+    fun saveUi(theme: UiTheme?) {
+        Config.appearanceOverride = theme?.let {
+            SkyBlockPvCodecs.UiThemeCodec.codec().encodeStart(JsonOps.INSTANCE, it.sanitized()).getOrThrow().toString()
+        } ?: ""
+        SkyBlockPv.config.save()
+    }
+
     fun nextTheme() {
         val themes = ThemeHelper.themes.keys.toList()
+        if (themes.isEmpty()) return
         Config.theme = themes[(themes.indexOf(Config.theme) + 1) % themes.size]
     }
 
