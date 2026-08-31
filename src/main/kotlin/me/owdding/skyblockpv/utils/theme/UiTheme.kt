@@ -34,9 +34,9 @@ data class UiTheme(
     companion object {
         val presets: Map<String, UiTheme> = linkedMapOf(
             "Midnight" to UiTheme(),
-            "Red" to UiTheme(background = 0x201316, sidebar = 0x2A191D, surface = 0x382126,
-                surfaceAlt = 0x492B31, primary = 0xFF8585, secondary = 0xFFB4A3,
-                border = 0x674047, hover = 0x593139, selected = 0x703B44),
+            "Red" to UiTheme(background = 0x190E11, sidebar = 0x221316, surface = 0x2C181D,
+                surfaceAlt = 0x392025, primary = 0xE96A73, secondary = 0xED9B8C,
+                border = 0x543137, hover = 0x48262D, selected = 0x5D3039),
             "Green" to UiTheme(background = 0x101D17, sidebar = 0x17271E, surface = 0x20372A,
                 surfaceAlt = 0x294735, primary = 0x80E5A5, secondary = 0xB7E58A,
                 border = 0x3C6049, hover = 0x31553E, selected = 0x3C6B4C),

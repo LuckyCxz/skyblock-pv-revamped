@@ -212,7 +212,21 @@ object PvWidgets {
         val itemDisplays = items.chunked(9).map { chunk ->
             val updatedChunk = chunk + List(9 - chunk.size) { ItemStack.EMPTY }
             updatedChunk.map { item ->
-                Displays.padding(3, Displays.item(item, itemSize, itemSize, showTooltip = true, showStackSize = true))
+                val icon = Displays.item(item, itemSize, itemSize, showTooltip = true, showStackSize = false)
+                // Vanilla's count decoration assumes a 16px item. Draw the count
+                // in slot coordinates after the enlarged icon restores its scale.
+                val slot = object : Display {
+                    override fun getWidth() = itemSize
+                    override fun getHeight() = itemSize
+                    override fun extract(graphics: net.minecraft.client.gui.GuiGraphicsExtractor) {
+                        icon.extract(graphics)
+                        if (!item.isEmpty && item.count > 1) {
+                            Displays.text(item.count.toString(), color = { 0xFFFFFFFFu }, shadow = true)
+                                .extract(graphics, itemSize - 1, itemSize - 9, alignmentX = 1f)
+                        }
+                    }
+                }
+                Displays.padding(3, slot)
             }
         }
         return ExtraDisplays.inventoryBackground(
