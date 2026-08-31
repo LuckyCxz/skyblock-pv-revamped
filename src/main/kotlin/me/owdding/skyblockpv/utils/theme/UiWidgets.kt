@@ -6,6 +6,7 @@ import me.owdding.lib.displays.Display
 import me.owdding.lib.displays.Displays
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.network.chat.Component
+import net.minecraft.world.item.ItemStack
 import tech.thatgravyboat.skyblockapi.helpers.McFont
 import java.awt.Color
 import kotlin.math.sqrt
@@ -60,16 +61,18 @@ object UiWidgets {
         override fun extract(graphics: GuiGraphicsExtractor) = panel(graphics, 0, 0, width, height, color())
     }
 
-    fun navigation(label: Component, selected: Boolean = false): WidgetRenderer<Button> = WidgetRenderer { gr, ctx, _ ->
+    fun navigation(label: Component, selected: Boolean = false, icon: ItemStack? = null): WidgetRenderer<Button> = WidgetRenderer { gr, ctx, _ ->
         val button = ctx.widget
         val ui = ThemeSupport.ui
         val hovered = button.isHoveredOrFocused
         panel(gr, ctx.x, ctx.y, button.width, button.height,
             if (selected) ui.selected else if (hovered) ui.hover else ui.sidebar)
         if (selected || hovered) gr.fill(ctx.x, ctx.y + 3, ctx.x + 2, ctx.y + button.height - 3, alpha(accent(), 100))
-        Displays.text(McFont.self.plainSubstrByWidth(label.string, button.width - 12),
+        val textOffset = if (icon != null && !icon.isEmpty) 26 else 7
+        if (icon != null && !icon.isEmpty) gr.item(icon, ctx.x + 6, ctx.y + (button.height - 16) / 2)
+        Displays.text(McFont.self.plainSubstrByWidth(label.string, button.width - textOffset - 5),
             color = { (if (selected) accent() else ui.text).toUInt() }, shadow = false)
-            .extract(gr, ctx.x + 7, ctx.y + (button.height - 9) / 2)
+            .extract(gr, ctx.x + textOffset, ctx.y + (button.height - 9) / 2)
     }
 
 }

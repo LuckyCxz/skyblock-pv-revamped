@@ -76,24 +76,40 @@ class MainScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
 
     override fun create(bg: DisplayWidget) {
         val available = uiWidth - 36
-        val column = if (available >= 420) (available - 12) / 2 else available
+        val column = if (available >= 360) (available - 12) / 2 else available
         val overview = PvLayouts.vertical(8) {
-            if (available >= 420) {
+            if (available >= 600) {
+                val playerWidth = (available / 4).coerceAtMost(190)
+                val infoWidth = (available - playerWidth - 24) / 2
+                val statsWidth = available - playerWidth - infoWidth - 24
                 horizontal(12) {
-                    widget(getGeneralInfo(profile, column))
-                    widget(getPlayerDisplay(profile, column.coerceAtMost(140)))
+                    widget(getPlayerDisplay(profile, playerWidth))
+                    widget(getGeneralInfo(profile, infoWidth))
+                    vertical(8) {
+                        widget(getSkillSection(profile, statsWidth))
+                        widget(getSlayerSection(statsWidth))
+                        widget(getEssenceSection(statsWidth))
+                    }
                 }
+            } else if (available >= 360) {
                 horizontal(12) {
-                    widget(getSkillSection(profile, column))
-                    widget(getSlayerSection(column))
+                    vertical(8) {
+                        widget(getGeneralInfo(profile, column))
+                        widget(getSlayerSection(column))
+                    }
+                    vertical(8) {
+                        widget(getPlayerDisplay(profile, column.coerceAtMost(180)))
+                        widget(getSkillSection(profile, column))
+                        widget(getEssenceSection(column))
+                    }
                 }
             } else {
-                widget(getPlayerDisplay(profile, available.coerceAtMost(110)))
                 widget(getGeneralInfo(profile, column))
                 widget(getSkillSection(profile, column))
                 widget(getSlayerSection(column))
+                widget(getEssenceSection(column))
+                widget(getPlayerDisplay(profile, available.coerceAtMost(160)))
             }
-            widget(getEssenceSection(column))
         }
         overview.asScrollable(uiWidth, uiHeight).applyLayout(bg.x + 8, bg.y + 4)
     }
@@ -234,8 +250,8 @@ class MainScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : B
         val convertedElements = data.map { (name, data) ->
             val level = getLevel(name, data).toString()
             val icon = when (val iconValue = getIcon(name)) {
-                is Identifier -> Displays.sprite(ThemeSupport.texture(iconValue), 12, 12)
-                is ItemStack -> Displays.item(iconValue, 12, 12)
+                is Identifier -> Displays.sprite(ThemeSupport.texture(iconValue), 16, 16)
+                is ItemStack -> Displays.item(iconValue, 16, 16)
                 else -> error("Invalid icon type")
             }
             val display = listOf(

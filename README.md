@@ -16,11 +16,14 @@ See [NOTICE](NOTICE) and the unchanged [LICENSE](LICENSE).
 
 Revamped adds a scrollable left sidebar, a player/page header, denser overview
 cards, larger inventory items (with compact-window sizing), and an Appearance editor.
+Page navigation uses Minecraft item icons. Overview cards arrange into two or
+three columns on wider windows; inventory slots grow to use available width and
+height while keeping item counts anchored inside each slot.
 The Hypixel/profile/API implementation is unchanged.
 
 ### Appearance
 
-Open **Appearance** from the sidebar. Click Red, Green, Blue, Cyan, Orange, Pink,
+Open **Appearance** using the painting button beside Settings and the eyedropper below the sidebar. Click Red, Green, Blue, Cyan, Orange, Pink,
 Purple, Midnight, Amethyst, or High contrast to apply and save a complete theme
 immediately. No color codes are needed. **Custom colors** reveals the optional
 `#RRGGBB` editor; click **Apply** to save custom colors/effects. Invalid values

@@ -68,7 +68,7 @@ import tech.thatgravyboat.skyblockapi.utils.text.TextUtils.splitLines
 
 abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, profile: SkyBlockProfile?) : BasePvScreen(name, gameProfile, profile) {
 
-    protected val sidebarWidth get() = if (width < 500) 88 else 112
+    protected val sidebarWidth get() = if (width < 500) 108 else 132
     override val uiWidth get() = (width - sidebarWidth - 64).coerceAtLeast(160)
     override val uiHeight get() = (height - 94).coerceAtLeast(100)
     abstract val tab: PvTab
@@ -199,6 +199,15 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
 
         widget(settingsButton)
         widget(themeSwitcher)
+        widget(Button().withSize(20, 20).withTexture(null)
+            .withRenderer(WidgetRenderers.layered(
+                UiWidgets.navigation(CommonComponents.EMPTY, tab == PvTab.APPEARANCE),
+                WidgetRenderers.center(16, 16) { gr, ctx, _ ->
+                    gr.item(PvTab.APPEARANCE.getIcon(gameProfile), ctx.x, ctx.y)
+                },
+            ))
+            .withCallback { if (tab != PvTab.APPEARANCE) Utils.openTab(PvTab.APPEARANCE, gameProfile, profile) }
+            .withTooltip(+"tab.appearance"))
     }
 
     private fun LayoutBuilder.createDevRow(bg: DisplayWidget) = horizontal(5) {
@@ -233,6 +242,7 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
 
     private fun createTabs() = PvLayouts.vertical(3) {
         PvTab.entries.forEach { tab ->
+            if (tab == PvTab.APPEARANCE) return@forEach
             if (tab.getTabState(profile) == TriState.FALSE) return@forEach
             if (!tab.canDisplay(profile)) return@forEach
 
@@ -242,14 +252,14 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
             if (!tab.isSelected()) {
                 button.withCallback { Utils.openTab(tab, gameProfile, profile) }
             }
-            button.withRenderer(UiWidgets.navigation(+"tab.${tab.name.lowercase()}", tab.isSelected()))
+            button.withRenderer(UiWidgets.navigation(+"tab.${tab.name.lowercase()}", tab.isSelected(), tab.getIcon(gameProfile)))
             button.withTooltip(+"tab.${tab.name.lowercase()}")
             widget(button)
             val categorized = this@BaseWindowedPvScreen as? AbstractCategorizedScreen
             if (tab.isSelected() && categorized != null) {
                 categorized.categories.filter { it.canDisplay(profile) }.forEach { category ->
                     widget(Button().withSize(sidebarWidth - 8, 20).withTexture(null)
-                        .withRenderer(UiWidgets.navigation(Text.of("  · ${category.hover}"), category.isSelected))
+                        .withRenderer(UiWidgets.navigation(Text.of(category.hover), category.isSelected, category.icon))
                         .withCallback { Utils.openTab(category, gameProfile, profile) }
                         .withTooltip(Text.of(category.hover)))
                 }

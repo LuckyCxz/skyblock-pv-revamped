@@ -205,10 +205,12 @@ object PvWidgets {
         compoundWidget.withStretchToContentSize()
     }
 
-    fun createInventory(items: List<ItemStack>): Display {
+    fun createInventory(items: List<ItemStack>, availableWidth: Int? = null): Display {
         val windowWidth = McClient.self.window.guiScaledWidth
-        val contentWidth = windowWidth - (if (windowWidth < 500) 88 else 112) - 64
-        val itemSize = ((contentWidth - 32) / 9 - 6).coerceIn(12, 24)
+        val contentWidth = availableWidth ?: (windowWidth - (if (windowWidth < 500) 108 else 132) - 88)
+        val rows = ((items.size + 8) / 9).coerceAtLeast(1)
+        val heightLimit = (McClient.self.window.guiScaledHeight - 180) / rows - 6
+        val itemSize = minOf((contentWidth - 4) / 9 - 6, heightLimit).coerceIn(12, 36)
         val itemDisplays = items.chunked(9).map { chunk ->
             val updatedChunk = chunk + List(9 - chunk.size) { ItemStack.EMPTY }
             updatedChunk.map { item ->

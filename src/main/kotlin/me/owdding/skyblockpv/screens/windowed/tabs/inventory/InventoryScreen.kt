@@ -24,7 +24,7 @@ class InventoryScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null
         val inventoryItems = inventory.inventoryItems.orEmpty(36).chunked(9)
         val reorderedItems = (inventoryItems.drop(1) + inventoryItems.take(1)).flatten()
         val gear = ExtraDisplays.inventoryBackground(2, 4, Displays.padding(2, armorAndEquipment))
-        val bag = PvWidgets.createInventory(reorderedItems)
+        val bag = PvWidgets.createInventory(reorderedItems, uiWidth - if (uiWidth >= 360) 80 else 24)
         return if (uiWidth < 360) PvLayouts.vertical(10) {
             display(bag)
             display(gear)
