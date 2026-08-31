@@ -33,7 +33,7 @@ import me.owdding.skyblockpv.screens.BasePvScreen
 import me.owdding.skyblockpv.screens.PvTab
 import me.owdding.skyblockpv.screens.windowed.elements.ExtraConstants
 import me.owdding.skyblockpv.screens.windowed.tabs.general.NetworthDisplay
-import me.owdding.skyblockpv.screens.windowed.tabs.base.AbstractCategorizedScreen
+import me.owdding.skyblockpv.screens.windowed.tabs.base.Category
 import me.owdding.skyblockpv.utils.ChatUtils.sendWithPrefix
 import me.owdding.skyblockpv.utils.ExtraWidgetRenderers
 import me.owdding.skyblockpv.utils.PvPageState
@@ -246,23 +246,37 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
             if (tab.getTabState(profile) == TriState.FALSE) return@forEach
             if (!tab.canDisplay(profile)) return@forEach
 
-            val button = Button()
-            button.setSize(sidebarWidth - 8, 22)
-            button.withTexture(null)
-            if (!tab.isSelected()) {
-                button.withCallback { Utils.openTab(tab, gameProfile, profile) }
-            }
-            button.withRenderer(UiWidgets.navigation(+"tab.${tab.name.lowercase()}", tab.isSelected(), tab.getIcon(gameProfile)))
-            button.withTooltip(+"tab.${tab.name.lowercase()}")
-            widget(button)
-            val categorized = this@BaseWindowedPvScreen as? AbstractCategorizedScreen
-            if (tab.isSelected() && categorized != null) {
-                categorized.categories.filter { it.canDisplay(profile) }.forEach { category ->
-                    widget(Button().withSize(sidebarWidth - 8, 20).withTexture(null)
-                        .withRenderer(UiWidgets.navigation(Text.of(category.hover), category.isSelected, category.icon))
-                        .withCallback { Utils.openTab(category, gameProfile, profile) }
-                        .withTooltip(Text.of(category.hover)))
-                }
+            val categories = tab.subcategories(profile)
+            val label = +"tab.${tab.name.lowercase()}"
+            if (categories.isNotEmpty()) {
+                widget(Widgets.dropdown(
+                    DropdownState<Category>.empty(),
+                    categories,
+                    { Text.of(it.hover) },
+                    { button ->
+                        button.withSize(sidebarWidth - 8, 22).withTexture(null)
+                            .withRenderer(UiWidgets.navigation(label.copy().append(" >"), tab.isSelected(), tab.getIcon(gameProfile)))
+                            .withTooltip(label)
+                    },
+                    { builder ->
+                        builder.withAlignment(OverlayAlignment.RIGHT_TOP)
+                        builder.withEntrySprites(null)
+                        builder.withTexture(ThemeSupport.texture(SkyBlockPv.id("box/rounded_box_thin")))
+                        builder.withSize(150.coerceAtMost(width - sidebarWidth - 32), minOf(categories.size * 26 + 8, height - 48))
+                        builder.withEntryHeight(26)
+                        builder.withEntryRenderer { category ->
+                            UiWidgets.navigation(Text.of(category.hover), category.isSelected, category.icon)
+                        }
+                        builder.withCallback { category ->
+                            if (category != null) Utils.openTab(category, gameProfile, profile)
+                        }
+                    },
+                ))
+            } else {
+                widget(Button().withSize(sidebarWidth - 8, 22).withTexture(null)
+                    .withRenderer(UiWidgets.navigation(label, tab.isSelected(), tab.getIcon(gameProfile)))
+                    .withCallback { if (!tab.isSelected()) Utils.openTab(tab, gameProfile, profile) }
+                    .withTooltip(label))
             }
         }
     }

@@ -2,8 +2,10 @@ package me.owdding.skyblockpv.screens.windowed.tabs
 
 import com.mojang.authlib.GameProfile
 import earth.terrarium.olympus.client.components.buttons.Button
-import earth.terrarium.olympus.client.layouts.Layouts
-import earth.terrarium.olympus.client.layouts.LinearViewLayout
+import earth.terrarium.olympus.client.components.renderers.WidgetRenderers
+import me.owdding.skyblockpv.utils.theme.UiWidgets
+import me.owdding.skyblockpv.utils.theme.ThemeSupport
+import tech.thatgravyboat.skyblockapi.helpers.McClient
 import me.owdding.lib.builder.LayoutBuilder
 import me.owdding.lib.builder.MIDDLE
 import me.owdding.lib.displays.Display
@@ -38,47 +40,77 @@ class PetScreen(gameProfile: GameProfile, profile: SkyBlockProfile? = null) : Ba
     private var selectedPet: Pet? = profile?.pets?.find { it.active }
     override val tab: PvTab = PvTab.PETS
 
-    override fun create(bg: DisplayWidget) {
-        val pets = profile.pets
-        val sortedPets = pets.sortedWith(compareBy<Pet> { SortedEntry.RARITY.list.indexOf(it.tier) }.thenByDescending { it.level }.thenByDescending { it.exp })
-        val leftColumnWidth = ((bg.width - 10) * 0.65).toInt()
-        val rightColumnWidth = (bg.width - 10 - leftColumnWidth)
+    private enum class PetSort { RARITY, LEVEL }
+    private var sort = PetSort.RARITY
 
-        PvLayouts.horizontal(5) {
-            widget(createPetRow(sortedPets, leftColumnWidth).asScrollable(leftColumnWidth, uiHeight - 10))
-            widget(createInfoRow(rightColumnWidth))
-        }.setPos(bg.x + 5, bg.y + 5).visitWidgets(this::addRenderableWidget)
+    override fun create(bg: DisplayWidget) {
+        val rarityOrder = compareBy<Pet> { SortedEntry.RARITY.list.indexOf(it.tier).let { rank -> if (rank < 0) Int.MAX_VALUE else rank } }
+        val ordering = when (sort) {
+            PetSort.RARITY -> rarityOrder.thenByDescending { it.level }
+            PetSort.LEVEL -> compareByDescending<Pet> { it.level }.then(rarityOrder)
+        }.thenByDescending { it.exp }.thenBy { it.type }
+        val sortedPets = profile.pets.sortedWith(ordering)
+        if (selectedPet !in profile.pets) selectedPet = profile.pets.find { it.active } ?: sortedPets.firstOrNull()
+        val stacked = uiWidth < 420
+        val detailWidth = if (stacked) uiWidth - 20 else 174
+        val gridWidth = if (stacked) uiWidth - 20 else uiWidth - detailWidth - 24
+
+        val content = PvLayouts.vertical(8) {
+            horizontal(6) {
+                PetSort.entries.forEach { option ->
+                    widget(Button().withSize(88, 22).withTexture(null)
+                        .withRenderer(UiWidgets.navigation(Text.of("Sort: " + option.name.toTitleCase()), sort == option))
+                        .withCallback { sort = option; safelyRebuild() })
+                }
+            }
+            string("${sortedPets.size} pets  /  ${sortedPets.count { it.active }} active")
+            if (sortedPets.isEmpty()) {
+                string("No pets found for this profile.")
+            } else if (stacked) {
+                widget(createInfoRow(detailWidth))
+                widget(createPetRow(sortedPets, gridWidth))
+            } else {
+                horizontal(10) {
+                    widget(createPetRow(sortedPets, gridWidth).asScrollable(gridWidth, uiHeight - 62))
+                    widget(createInfoRow(detailWidth))
+                }
+            }
+        }
+        val visible = if (stacked) content.asScrollable(uiWidth, uiHeight) else content
+        visible.setPos(bg.x + 8, bg.y + 8).visitWidgets(this::addRenderableWidget)
     }
 
     private fun createPetRow(pets: List<Pet>, width: Int): Layout {
-        val amountPerRow = width / 28
-
-        val petLayouts = pets.map { createPetLayout(it) }
-        val petContainer = petLayouts.chunked(amountPerRow)
-            .map { it.fold(Layouts.row().withGap(5), LinearViewLayout::withChild) }
-            .fold(Layouts.column().withGap(5), LinearViewLayout::withChild)
-        petContainer.arrangeElements()
-        return petContainer
-    }
-
-    private fun createPetLayout(pet: Pet): AbstractWidget {
-        val itemDisplay = Displays.item(pet.itemStack, showTooltip = true, customStackText = Text.of(pet.level.toString()).withColor(pet.rarity.color))
-        val display = ExtraDisplays.inventorySlot(
-            Displays.padding(3, itemDisplay),
-            (-1).takeUnless { pet == selectedPet } ?: PvColors.GREEN,
-        )
-        return Button()
-            .withSize(22, 22)
-            .withTexture(null)
-            .withRenderer(DisplayWidget.displayRenderer(display))
-            .withCallback {
-                selectedPet = pet
-                this.safelyRebuild()
+        val columns = ((width - 20) / 150).coerceAtLeast(1)
+        val cardWidth = ((width - 20 - (columns - 1) * 6) / columns).coerceAtLeast(110)
+        return PvLayouts.vertical(6) {
+            pets.chunked(columns).forEach { row ->
+                horizontal(6) { row.forEach { widget(createPetLayout(it, cardWidth)) } }
             }
+        }
     }
 
+    private fun createPetLayout(pet: Pet, width: Int): AbstractWidget {
+        val icon = PvWidgets.sizedItem(pet.itemStack, 28, null)
+        return Button().withSize(width, 48).withTexture(null)
+            .withRenderer(WidgetRenderers.layered(
+                UiWidgets.navigation(Text.of(""), pet == selectedPet),
+                { graphics, context, _ ->
+                    icon.extract(graphics, context.x + 6, context.y + 8)
+                    val name = McClient.self.font.plainSubstrByWidth(pet.type.toTitleCase(), width - 44)
+                    Displays.text(Text.of(name).withColor(pet.rarity.color), shadow = false)
+                        .extract(graphics, context.x + 40, context.y + 7)
+                    Displays.text("Lv. ${pet.level}", color = { ThemeSupport.ui.text.toUInt() }, shadow = false)
+                        .extract(graphics, context.x + 40, context.y + 20)
+                    Displays.text(pet.tier.toTitleCase() + if (pet.active) " *" else "",
+                        color = { ThemeSupport.ui.muted.toUInt() }, shadow = false)
+                        .extract(graphics, context.x + 40, context.y + 33)
+                },
+            ))
+            .withCallback { selectedPet = pet; safelyRebuild() }
+    }
     private fun createInfoRow(width: Int) = PvWidgets.label(
-        "Info",
+        "Selected Pet",
         PvLayouts.vertical(spacing = 2) {
             val colon = ExtraDisplays.grayText(": ")
             val effectiveWidth = width - 20

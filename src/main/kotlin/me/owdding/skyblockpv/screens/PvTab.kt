@@ -43,6 +43,10 @@ import tech.thatgravyboat.skyblockapi.helpers.McScreen
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
+import me.owdding.skyblockpv.screens.windowed.tabs.combat.CombatCategory
+import me.owdding.skyblockpv.screens.windowed.tabs.farming.FarmingCategory
+import me.owdding.skyblockpv.screens.windowed.tabs.foraging.ForagingCategory
+
 enum class PvTab(
     private val screen: KClass<out BaseWindowedPvScreen>,
     private val constructor: (GameProfile, SkyBlockProfile?) -> BaseWindowedPvScreen,
@@ -105,6 +109,17 @@ enum class PvTab(
         hideOnStranded,
     )
 
+    fun subcategories(profile: SkyBlockProfile): List<Category> = when (this) {
+        COMBAT -> CombatCategory.entries
+        INVENTORY -> InventoryCategory.entries
+        COLLECTION -> CollectionCategories.entries
+        MINING -> MiningCategory.entries
+        FORAGING -> ForagingCategory.entries
+        FARMING -> FarmingCategory.entries
+        MUSEUM -> MuseumCategory.entries
+        RIFT -> RiftCategory.entries
+        else -> emptyList()
+    }.filter { it.canDisplay(profile) }
     fun isSelected() = McScreen.self?.takeIf { it::class.isSubclassOf(screen) } != null
 
     fun getTabState(profile: SkyBlockProfile): TriState = when (this) {
