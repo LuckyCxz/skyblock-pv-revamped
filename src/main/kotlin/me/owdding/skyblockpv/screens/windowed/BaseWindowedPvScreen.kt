@@ -249,15 +249,21 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
             val categories = tab.subcategories(profile)
             val label = +"tab.${tab.name.lowercase()}"
             if (categories.isNotEmpty()) {
-                widget(Button().withSize(sidebarWidth - 8, 22).withTexture(null)
+                lateinit var tabButton: Button
+                tabButton = Button().withSize(sidebarWidth - 8, 22).withTexture(null)
                     .withRenderer(UiWidgets.navigation(label.copy().append(" >"), tab.isSelected(), tab.getIcon(gameProfile)))
                     .apply { withTooltip(label) }
                     .withCallback {
                         val selectedCategory = categories.firstOrNull { it.isSelected }
                         val menuWidth = minOf(160, width - sidebarWidth - 32)
                         val menuHeight = minOf(categories.size * 26 + 3, height - 48)
+                        // Keep the flyout attached to the button that opened it. Center
+                        // long menus on that button, then clamp them inside the screen.
+                        val menuX = (tabButton.x + tabButton.width + 4).coerceAtMost(width - menuWidth - 4)
+                        val menuY = (tabButton.y + (tabButton.height - menuHeight) / 2)
+                            .coerceIn(4, (height - menuHeight - 4).coerceAtLeast(4))
                         earth.terrarium.olympus.client.ui.context.ContextMenu.open(
-                            sidebarWidth + 16, (height - menuHeight) / 2,
+                            menuX, menuY,
                         ) { menu ->
                             menu.withBounds(menuWidth, menuHeight)
                             menu.withTexture(ThemeSupport.texture(SkyBlockPv.id("box/rounded_box_thin")))
@@ -270,7 +276,8 @@ abstract class BaseWindowedPvScreen(name: String, gameProfile: GameProfile, prof
                                 }
                             }
                         }
-                    })
+                    }
+                widget(tabButton)
             } else {
                 widget(Button().withSize(sidebarWidth - 8, 22).withTexture(null)
                     .withRenderer(UiWidgets.navigation(label, tab.isSelected(), tab.getIcon(gameProfile)))
